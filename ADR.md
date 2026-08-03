@@ -11,7 +11,7 @@ Entscheidung, Begründung und Konsequenzen. Die Nummern werden im Notebook
 **Status-Legende:** `Angenommen` = umgesetzt · `Beschlossen` = entschieden, Umsetzung in einem
 späteren Schritt · `Offen` = noch zu entscheiden.
 
-**Stand nach Abschluss aller sieben Schritte: alle 15 Entscheidungen sind `Angenommen` –
+**Stand nach Abschluss aller sieben Schritte: alle 16 Entscheidungen sind `Angenommen` –
 es ist keine Entscheidung mehr offen.**
 
 | Nr. | Entscheidung | Schritt |
@@ -30,7 +30,8 @@ es ist keine Entscheidung mehr offen.**
 | ADR-012 | Distanzverfahren: SVM (RBF) statt k-NN | 3.1 |
 | ADR-013 | Imbalance über `class_weight="balanced"` | 6.2 |
 | ADR-014 | MLP: A unverändert, B mit SGD-Momentum + patience 10 | 4 / 5 |
-| ADR-015 | Finales Modell: Random Forest, `class_weight="balanced"` | 6.2–6.4 |
+| ADR-015 | Finales Modell: Random Forest, `class_weight="balanced"` | 6.2–6.5 |
+| ADR-016 | Entscheidungsregel bleibt `argmax` (keine Schwellwert-Verschiebung) | 6.3 |
 
 ---
 
@@ -512,3 +513,42 @@ unter den Validierungswerten – ein Zeichen dafür, dass die Validierungsmetrik
 wiederholte Modellauswahl leicht optimistisch waren. Da das Testset nur 26 pathologische
 Fälle enthält, ist der perfekte Recall mit Vorsicht zu lesen (95-%-Konfidenzintervall bis
 ca. 0,87 hinunter).
+
+---
+
+## ADR-016 – Entscheidungsregel bleibt `argmax` (keine Schwellwert-Verschiebung)
+
+**Status:** Angenommen (analysiert und entschieden in Schritt 6.3)
+
+**Kontext:**
+Ein Random Forest liefert über `predict_proba()` Wahrscheinlichkeiten für alle drei Klassen;
+die Klassenzuweisung entsteht daraus per `argmax`. Für ein Screening-System ist das nicht
+zwingend die richtige Regel: Man könnte bewusst alarmieren, sobald die Wahrscheinlichkeit für
+*Pathological* eine Schwelle t überschreitet – auch wenn rechnerisch eine andere Klasse
+wahrscheinlicher ist. Der Kurs führt diese Schwellwert-Anpassung für imbalancierte Daten
+ausdrücklich ein (Kapitel 6, Fraud-Detection-Notebook).
+
+**Entscheidung:**
+Wir behalten die **`argmax`-Standardregel** bei. Die Schwellwert-Analyse wird durchgeführt und
+dokumentiert, führt aber zu keiner Änderung am Modell.
+
+**Begründung:**
+- Die Analyse auf dem Validierungsset zeigt den erwarteten Verlauf: Eine Absenkung von
+  t = 0,50 auf t = 0,25 hebt den Recall für Pathological von 0,885 auf 0,962, senkt die
+  Precision aber von 0,958 auf 0,833. Unter t = 0,20 bricht die Precision ein (bis 0,581),
+  ohne dass der Recall weiter steigt.
+- Der scheinbare Gewinn entspricht **genau zwei Fällen** (23 → 25 von 26). Bei dieser
+  Stichprobengröße ist das nicht von Rauschen zu unterscheiden – dieselbe Vorsicht, die wir
+  in Schritt 7.1 auf die Testergebnisse anwenden (Konfidenzintervalle).
+- Eine auf 26 Fällen kalibrierte Schwelle wäre mit hoher Wahrscheinlichkeit auf das
+  Validierungsset überangepasst und würde auf neuen Daten nicht halten.
+- `class_weight="balanced"` (→ ADR-013) verschiebt die Wahrscheinlichkeiten bereits zugunsten
+  der kleinen Klassen; eine zusätzliche Schwellenverschiebung würde denselben Effekt ein
+  zweites Mal anwenden.
+
+**Konsequenzen:**
+Die Schwelle bleibt als Stellhebel dokumentiert und ist in Schritt 7.5 als Maßnahme mit dem
+besten Verhältnis von Aufwand zu klinischem Nutzen vermerkt – sobald belastbare Fehlerkosten
+(„ein übersehener Fall entspricht X Fehlalarmen") und mehr Fälle vorliegen. Ergänzend wurde
+die **ROC-AUC** als schwellenunabhängiges Gütemaß berechnet (0,988 ovr/weighted auf der
+Validierung); sie stützt die Modellwahl unabhängig von der gewählten Entscheidungsregel.

@@ -37,6 +37,7 @@ Fehlklassifikation ist, wird nicht nur die Accuracy bewertet, sondern vor allem 
 ```
 ML-Projekt/
 ├── README.md                               ← diese Datei
+├── Management_Summary.md                   ← Abgabe-Deliverable: Zusammenfassung der Ergebnisse
 ├── ADR.md                                  ← alle Projektentscheidungen mit Begründung
 ├── Context/                                ← Aufgabenstellung & Kursmaterial (kein Code)
 │   ├── Assignment.pdf
@@ -209,6 +210,10 @@ Markdown-Zelle mit Begründung bzw. Interpretation begleitet.
   23 Fehler). Schlechtester Recall: **Suspect (0,750)**. **Alle 26 pathologischen Fälle
   wurden erkannt** – kein Fall wurde als „Normal" durchgewinkt. Einschränkung: Bei nur 26
   Fällen reicht das 95-%-Konfidenzintervall bis ca. 0,87 hinunter.
+- **Schwellwert-Analyse (Abschnitt 6.3):** ROC-AUC 0,988 (ovr/weighted) bestätigt die
+  Modellwahl schwellenunabhängig. Eine Absenkung der Alarmschwelle für Pathological von 0,50
+  auf 0,25 würde den Recall von 0,885 auf 0,962 heben – das sind aber nur 2 Fälle von 26 und
+  damit Rauschen. **Bewusste Entscheidung gegen die Verschiebung** (→ ADR-016).
 - **Feature Importances** bestätigen die EDA aus Schritt 1: `abnormal_short_term_variability`
   (0,141) und `percentage_of_time_with_abnormal_long_term_variability` (0,123) führen. Eine
   Korrektur: `prolongued_decelerations` hatte die höchste Korrelation (r = 0,49), landet als
@@ -228,9 +233,12 @@ Markdown-Zelle mit Begründung bzw. Interpretation begleitet.
   Datenbasis zu klein für Qualitätsversprechen; keine geprüfte Übertragbarkeit auf andere
   Kliniken; **das Modell lernt Befundungsverhalten, nicht den fetalen Zustand** (Labels sind
   ärztliche CTG-Einschätzungen, keine Geburtsausgänge).
-- **Mit mehr Daten:** Für ±5 Prozentpunkte Präzision beim Recall bräuchte es ca. 73
-  Pathological-Fälle im Testset ≈ 5.900 Samples gesamt (heute: 26 bzw. 2.113). Rechenleistung
-  war *nicht* der Engpass – der gesamte GridSearch lief in unter 10 Sekunden.
+- **Mit mehr Daten:** Die `learning_curve` zeigt, dass die letzten 30 % der Trainingsdaten nur
+  noch +0,009 F1w bringen (bei ±0,008 Streuung) – mehr Daten verbessern also vor allem die
+  **Messgenauigkeit**, kaum noch das Modell. Für ±5 Prozentpunkte Präzision beim Recall
+  bräuchte es ca. 73 Pathological-Fälle im Testset ≈ 5.900 Samples gesamt (heute: 26 bzw.
+  2.113). Rechenleistung war *nicht* der Engpass – der gesamte GridSearch lief in unter
+  10 Sekunden.
 - **Bonusfrage (CNN/Transfer Learning):** Auf diesen Daten nein – die 21 Spalten sind eine
   ungeordnete Menge aggregierter Kennzahlen ohne räumliche/zeitliche Nachbarschaft, die ein
   Faltungskern ausnutzen könnte. **Auf dem rohen CTG-Zeitsignal** wäre ein 1D-CNN dagegen
@@ -266,6 +274,6 @@ Gruppe verantwortet. Jedes Gruppenmitglied muss jeden Code-Abschnitt erklären k
 
 ## 7. Abgabe-Deliverables (bis 10. August 2026)
 
-1. Vollständig ausgeführtes Notebook (`.ipynb`)
-2. PDF-Export des Notebooks (*Datei → Drucken → Als PDF speichern*)
-3. Management Summary
+1. ✅ Vollständig ausgeführtes Notebook (`.ipynb`) → [src/fetal_health_modellvergleich.ipynb](src/fetal_health_modellvergleich.ipynb)
+2. ⬜ PDF-Export des Notebooks (*Datei → Drucken → Als PDF speichern*) – aus Colab zu erzeugen
+3. ✅ Management Summary → [Management_Summary.md](Management_Summary.md)
