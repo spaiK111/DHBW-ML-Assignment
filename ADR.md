@@ -11,6 +11,27 @@ Entscheidung, Begründung und Konsequenzen. Die Nummern werden im Notebook
 **Status-Legende:** `Angenommen` = umgesetzt · `Beschlossen` = entschieden, Umsetzung in einem
 späteren Schritt · `Offen` = noch zu entscheiden.
 
+**Stand nach Abschluss aller sieben Schritte: alle 15 Entscheidungen sind `Angenommen` –
+es ist keine Entscheidung mehr offen.**
+
+| Nr. | Entscheidung | Schritt |
+|---|---|---|
+| ADR-001 | Projektstruktur, Werkzeuge, `RANDOM_STATE = 42` | 1 |
+| ADR-002 | Metrikstrategie: F1w → Recall Pathological → Accuracy | 1 |
+| ADR-003 | Keine Imputation (keine fehlenden Werte) | 2.1 |
+| ADR-004 | 13 Duplikate vor dem Split entfernen | 2.2 |
+| ADR-005 | Keine Feature-Selektion trotz Multikollinearität | 1.6 |
+| ADR-006 | Keine Feature-Kodierung (alles numerisch/ordinal) | 2.3 |
+| ADR-007 | Keine Ausreißer entfernen | 1.3 / 1.7 |
+| ADR-008 | StandardScaler, nur auf Train gefittet | 2.6 |
+| ADR-009 | Stratifizierter 70/15/15-Split | 2.5 |
+| ADR-010 | Feste Klassenfarben in Ampel-Logik | 1.1 |
+| ADR-011 | Baumverfahren: Random Forest | 3.1 |
+| ADR-012 | Distanzverfahren: SVM (RBF) statt k-NN | 3.1 |
+| ADR-013 | Imbalance über `class_weight="balanced"` | 6.2 |
+| ADR-014 | MLP: A unverändert, B mit SGD-Momentum + patience 10 | 4 / 5 |
+| ADR-015 | Finales Modell: Random Forest, `class_weight="balanced"` | 6.2–6.4 |
+
 ---
 
 ## ADR-001 – Projektstruktur, Werkzeuge und Reproduzierbarkeit
@@ -375,6 +396,42 @@ Die SVM zeigt mit Defaults den schwächsten Suspect-Recall aller Modelle (0,568)
 
 ---
 
+## ADR-013 – Klassen-Imbalance über `class_weight="balanced"` behandeln
+
+**Status:** Angenommen (umgesetzt in Schritt 6.2)
+
+**Kontext:**
+Die Klassen sind mit 78 / 14 / 8 % stark imbalanciert (→ ADR-002). Bis Schritt 5 wurden alle
+Modelle **ohne** Gegenmaßnahme trainiert, weil Schritt 3 ausdrücklich Default-Parameter
+verlangt. Die Folge war durchgängig ein schwacher Recall auf den kleinen Klassen
+(Pathological 0,65–0,88, Suspect 0,50–0,77).
+
+**Entscheidung:**
+Die Imbalance wird über **`class_weight="balanced"`** im finalen Random Forest behandelt –
+nicht über Resampling (SMOTE, Undersampling).
+
+**Begründung:**
+- **Datengetrieben statt gesetzt:** `class_weight` wurde als Parameter in den GridSearchCV
+  aufgenommen (None / balanced / balanced_subsample) und die Kreuzvalidierung hat entschieden.
+  Die Gewichtung hebt den CV-Recall auf Pathological von 0,838 auf 0,919, ohne den F1w
+  nennenswert zu beschädigen (0,9346 vs. 0,9356).
+- **Warum kein Resampling:** SMOTE erzeugt synthetische Fälle durch Interpolation zwischen
+  Nachbarn. Bei medizinischen Messdaten mit nur 175 pathologischen Fällen entstünden damit
+  CTG-Profile, die so nie gemessen wurden – fachlich schwer zu rechtfertigen. Undersampling
+  würde Daten der ohnehin knappen Gesamtmenge verwerfen. `class_weight` erreicht denselben
+  Effekt durch Umgewichtung im Loss, ohne die Datenbasis zu verfälschen.
+- Das Verfahren ist außerdem in scikit-learn eingebaut und benötigt keine externe
+  Bibliothek (`imbalanced-learn`).
+
+**Konsequenzen:**
+Bewusster Kompromiss zulasten der Mehrheitsklasse: Auf dem Validierungsset steigt der Recall
+für Suspect von 0,773 auf 0,864 und für Pathological von 0,885 auf 0,923, während Normal von
+0,984 auf 0,951 nachgibt. Im finalen Testergebnis wurden **alle 26 pathologischen Fälle
+erkannt** – erkauft mit 12 Fehlalarmen (Normal → Suspect). Im Screening-Kontext ist das der
+gewollte Tausch (→ ADR-002).
+
+---
+
 ## ADR-014 – MLP-Startkonfigurationen: Variante A unverändert, Variante B mit SGD-Momentum
 
 **Status:** Angenommen (umgesetzt in Schritt 4/5)
@@ -412,42 +469,6 @@ Die optimierte Variante B erreicht `val_loss` 0,204 / Accuracy 0,912 / F1w 0,909
 übertrifft Variante A – bleibt aber hinter dem Random Forest (F1w 0,945), insbesondere beim
 Recall der Klasse Pathological (0,654 vs. 0,885). Der Random Forest bleibt Favorit für
 Schritt 6.
-
----
-
-## ADR-013 – Klassen-Imbalance über `class_weight="balanced"` behandeln
-
-**Status:** Angenommen (umgesetzt in Schritt 6.2)
-
-**Kontext:**
-Die Klassen sind mit 78 / 14 / 8 % stark imbalanciert (→ ADR-002). Bis Schritt 5 wurden alle
-Modelle **ohne** Gegenmaßnahme trainiert, weil Schritt 3 ausdrücklich Default-Parameter
-verlangt. Die Folge war durchgängig ein schwacher Recall auf den kleinen Klassen
-(Pathological 0,65–0,88, Suspect 0,50–0,77).
-
-**Entscheidung:**
-Die Imbalance wird über **`class_weight="balanced"`** im finalen Random Forest behandelt –
-nicht über Resampling (SMOTE, Undersampling).
-
-**Begründung:**
-- **Datengetrieben statt gesetzt:** `class_weight` wurde als Parameter in den GridSearchCV
-  aufgenommen (None / balanced / balanced_subsample) und die Kreuzvalidierung hat entschieden.
-  Die Gewichtung hebt den CV-Recall auf Pathological von 0,838 auf 0,919, ohne den F1w
-  nennenswert zu beschädigen (0,9346 vs. 0,9356).
-- **Warum kein Resampling:** SMOTE erzeugt synthetische Fälle durch Interpolation zwischen
-  Nachbarn. Bei medizinischen Messdaten mit nur 175 pathologischen Fällen entstünden damit
-  CTG-Profile, die so nie gemessen wurden – fachlich schwer zu rechtfertigen. Undersampling
-  würde Daten der ohnehin knappen Gesamtmenge verwerfen. `class_weight` erreicht denselben
-  Effekt durch Umgewichtung im Loss, ohne die Datenbasis zu verfälschen.
-- Das Verfahren ist außerdem in scikit-learn eingebaut und benötigt keine externe
-  Bibliothek (`imbalanced-learn`).
-
-**Konsequenzen:**
-Bewusster Kompromiss zulasten der Mehrheitsklasse: Auf dem Validierungsset steigt der Recall
-für Suspect von 0,773 auf 0,864 und für Pathological von 0,885 auf 0,923, während Normal von
-0,984 auf 0,951 nachgibt. Im finalen Testergebnis wurden **alle 26 pathologischen Fälle
-erkannt** – erkauft mit 12 Fehlalarmen (Normal → Suspect). Im Screening-Kontext ist das der
-gewollte Tausch (→ ADR-002).
 
 ---
 

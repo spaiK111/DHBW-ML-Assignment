@@ -105,7 +105,7 @@ Markdown-Zelle mit Begründung bzw. Interpretation begleitet.
 | **4** | MLP Variante A: `Dense(64, relu) → Dense(3, softmax)`, Adam, Early Stopping | ✅ fertig |
 | **5** | MLP Variante B: zusätzlich `Dropout(0.3)` und `Dense(32, relu)`, SGD | ✅ fertig |
 | **6** | Vergleichstabelle, Hyperparameter-Optimierung, finale Evaluation auf dem Testset, Konfusionsmatrix | ✅ fertig |
-| **7** | Reflexion, Empfehlung für den Produktiveinsatz, Grenzen | ⬜ offen |
+| **7** | Reflexion, Empfehlung für den Produktiveinsatz, Grenzen | ✅ fertig |
 
 ### Ergebnisse aus Schritt 1 (Kurzfassung)
 
@@ -213,6 +213,28 @@ Markdown-Zelle mit Begründung bzw. Interpretation begleitet.
   (0,141) und `percentage_of_time_with_abnormal_long_term_variability` (0,123) führen. Eine
   Korrektur: `prolongued_decelerations` hatte die höchste Korrelation (r = 0,49), landet als
   Importance aber nur im Mittelfeld – es ist in 92 % der Zeilen 0 und trägt zu wenige Splits.
+
+### Ergebnisse aus Schritt 7 (Kurzfassung)
+
+- **Statistische Einordnung (Wilson-95-%-KI):** Recall Pathological 1,000 **[0,871; 1,000]** ·
+  Suspect 0,750 [0,606; 0,854] · Accuracy 0,927 [0,893; 0,951]. Der perfekte Recall ist die
+  am wenigsten belastbare Zahl des Projekts – „26 von 26" ist mit einem wahren Recall von
+  90 % gut vereinbar.
+- **Empfehlung:** Random Forest mit `class_weight="balanced"` – ausdrücklich als
+  **Assistenzsystem mit ärztlicher Letztentscheidung**. Gründe: kein pathologischer Fall als
+  „Normal" durchgewinkt, in allen Metriken vorn, vorsichtiges Fehlerprofil, kein GPU-Bedarf,
+  über Feature Importances teilweise erklärbar.
+- **Grenzen:** Suspect ist die eigentliche Schwachstelle (Recall 0,750, Precision 0,733);
+  Datenbasis zu klein für Qualitätsversprechen; keine geprüfte Übertragbarkeit auf andere
+  Kliniken; **das Modell lernt Befundungsverhalten, nicht den fetalen Zustand** (Labels sind
+  ärztliche CTG-Einschätzungen, keine Geburtsausgänge).
+- **Mit mehr Daten:** Für ±5 Prozentpunkte Präzision beim Recall bräuchte es ca. 73
+  Pathological-Fälle im Testset ≈ 5.900 Samples gesamt (heute: 26 bzw. 2.113). Rechenleistung
+  war *nicht* der Engpass – der gesamte GridSearch lief in unter 10 Sekunden.
+- **Bonusfrage (CNN/Transfer Learning):** Auf diesen Daten nein – die 21 Spalten sind eine
+  ungeordnete Menge aggregierter Kennzahlen ohne räumliche/zeitliche Nachbarschaft, die ein
+  Faltungskern ausnutzen könnte. **Auf dem rohen CTG-Zeitsignal** wäre ein 1D-CNN dagegen
+  naheliegend (z. B. für die Kopplung Wehe → Dezeleration, die in den Aggregaten verloren ist).
 
 ---
 
