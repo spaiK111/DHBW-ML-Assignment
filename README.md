@@ -102,9 +102,9 @@ Markdown-Zelle mit Begründung bzw. Interpretation begleitet.
 | **1** | Datenanalyse: Struktur, Datenqualität, Klassenverteilung, 4 Visualisierungen, Feature-Relevanz | ✅ fertig |
 | **2** | Preprocessing: Duplikate, Zielkodierung, stratifizierter 70/15/15-Split, Skalierung | ✅ fertig |
 | **3** | Drei klassische Modelle mit Default-Parametern + 5-fache stratifizierte Kreuzvalidierung | ✅ fertig |
-| **4** | MLP Variante A: `Dense(64, relu) → Dense(3, softmax)`, Adam, Early Stopping | ⬜ offen |
-| **5** | MLP Variante B: zusätzlich `Dropout(0.3)` und `Dense(32, relu)`, SGD | ⬜ offen |
-| **6** | Vergleichstabelle, Hyperparameter-Optimierung, finale Evaluation auf dem Testset, Konfusionsmatrix | ⬜ offen |
+| **4** | MLP Variante A: `Dense(64, relu) → Dense(3, softmax)`, Adam, Early Stopping | ✅ fertig |
+| **5** | MLP Variante B: zusätzlich `Dropout(0.3)` und `Dense(32, relu)`, SGD | ✅ fertig |
+| **6** | Vergleichstabelle, Hyperparameter-Optimierung, finale Evaluation auf dem Testset, Konfusionsmatrix | ✅ fertig |
 | **7** | Reflexion, Empfehlung für den Produktiveinsatz, Grenzen | ⬜ offen |
 
 ### Ergebnisse aus Schritt 1 (Kurzfassung)
@@ -156,6 +156,63 @@ Markdown-Zelle mit Begründung bzw. Interpretation begleitet.
   Tuning-Hebel für Schritt 6 vorgemerkt (→ ADR-013).
 - **Alle Modelle** liegen deutlich über der 77,9-%-Baseline; *Suspect* ist durchgängig die
   schwierigste Klasse (Recall 0,57–0,77).
+
+### Ergebnisse aus Schritt 4 und 5 (Kurzfassung)
+
+- **Variante A (Adam, Startkonfiguration):** Early Stopping nach 63 Epochen (beste Epoche 58,
+  `val_loss` 0,231); mildes Overfitting ohne ansteigenden `val_loss` → Architektur geeignet,
+  **kein Eingriff**. Validierung: Accuracy 0,890 / F1w 0,886 / Recall Pathological 0,654 –
+  Niveau der Logistischen Regression.
+- **Variante B (SGD, Startkonfiguration):** konvergiert sichtbar langsamer und schlechter
+  (`val_loss` 0,273, F1w 0,877, Suspect-Recall 0,50) – trotz größerer Architektur schlechter
+  als A. Dropout eliminiert den Train/Val-Abstand; reines SGD (konstante Lernrate, kein
+  Momentum) ist der Engpass.
+- **Dokumentierter Eingriff (→ ADR-014):** `SGD(momentum=0.9)` + `patience=10`
+  (Gegenprobe: patience allein bringt fast nichts). Ergebnis: `val_loss` 0,204,
+  **Accuracy 0,912 / F1w 0,909**, Suspect-Recall 0,68 – besser als A, aber weiterhin hinter
+  dem Random Forest (0,946 / 0,945), v. a. beim Pathological-Recall (0,654 vs. 0,885).
+- **Antwort auf die zentrale Frage** („Warum ist B nicht automatisch besser als A?"):
+  Kapazität nützt nur, wenn die Optimierung sie erschließt; Dropout bekämpft ein Problem
+  (Overfitting), das A kaum hatte; kleine Datenbasis; Optimizer ist Teil des Modells –
+  ausführlich in Notebook-Abschnitt 5.2.
+
+### Ergebnisse aus Schritt 6 (Kurzfassung)
+
+**Vergleichstabelle (Validierungsset, 317 Samples):**
+
+| Modell | Typ | Accuracy | F1 (weighted) | Recall Pathological |
+|---|---|---|---|---|
+| Logistic Regression | Klassisch | 0,8927 | 0,8895 | 0,6538 |
+| **Random Forest** | **Klassisch** | **0,9464** | **0,9451** | **0,8846** |
+| SVM (RBF) | Klassisch | 0,9022 | 0,8963 | 0,6923 |
+| MLP Variante A | Neural Net | 0,8896 | 0,8864 | 0,6538 |
+| MLP Variante B (optimiert) | Neural Net | 0,9117 | 0,9085 | 0,6538 |
+
+- **Bestes Modell: Random Forest** – führt in allen drei Metriken gleichzeitig. Da es ein
+  klassisches Modell ist, erfolgt die Optimierung per `GridSearchCV` (KerasTuner entfällt).
+- **GridSearchCV:** 4 Parameter (`n_estimators`, `max_depth`, `min_samples_leaf`,
+  `class_weight`) = 54 Kombinationen × 5 Folds.
+- **Gewählte Konfiguration – bewusst nicht der Grid-Sieger** (→ ADR-015): Die Top-5 liegen im
+  F1w zwischen 0,9346 und 0,9356 (Spanne 0,001, weit innerhalb der CV-Streuung ± 0,016), im
+  Pathological-Recall aber zwischen 0,838 und 0,919. Nach der Priorität aus ADR-002 fällt die
+  Wahl auf `class_weight="balanced"` (CV-Recall 0,919). Damit ist auch ADR-013 entschieden.
+- **Finale Test-Evaluation** (einmaliger Zugriff, Modell auf Train+Val trainiert):
+  **Accuracy 0,927 / F1w 0,928**.
+
+  | | Precision | Recall | F1 | Support |
+  |---|---|---|---|---|
+  | Normal | 0,963 | 0,951 | 0,957 | 247 |
+  | Suspect | 0,733 | 0,750 | 0,742 | 44 |
+  | Pathological | 0,929 | **1,000** | 0,963 | 26 |
+
+- **Konfusionsmatrix:** Häufigste Verwechslung ist **Normal ↔ Suspect** (12 + 9 = 21 der
+  23 Fehler). Schlechtester Recall: **Suspect (0,750)**. **Alle 26 pathologischen Fälle
+  wurden erkannt** – kein Fall wurde als „Normal" durchgewinkt. Einschränkung: Bei nur 26
+  Fällen reicht das 95-%-Konfidenzintervall bis ca. 0,87 hinunter.
+- **Feature Importances** bestätigen die EDA aus Schritt 1: `abnormal_short_term_variability`
+  (0,141) und `percentage_of_time_with_abnormal_long_term_variability` (0,123) führen. Eine
+  Korrektur: `prolongued_decelerations` hatte die höchste Korrelation (r = 0,49), landet als
+  Importance aber nur im Mittelfeld – es ist in 92 % der Zeilen 0 und trägt zu wenige Splits.
 
 ---
 

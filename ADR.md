@@ -375,10 +375,119 @@ Die SVM zeigt mit Defaults den schwächsten Suspect-Recall aller Modelle (0,568)
 
 ---
 
-## Offene Entscheidungen (kommende Schritte)
+## ADR-014 – MLP-Startkonfigurationen: Variante A unverändert, Variante B mit SGD-Momentum
 
-| Nr. | Thema | Schritt |
-|---|---|---|
-| ADR-013 | Umgang mit der Klassen-Imbalance im Modell (`class_weight` / Klassengewichte) | Schritt 6 |
-| ADR-014 | Eventuelle Anpassungen der MLP-Startarchitekturen A und B nach Analyse der Lernkurven | Schritt 4–5 |
-| ADR-015 | Auswahl des „besten“ Modells und Parameterraum der Hyperparameter-Optimierung | Schritt 6 |
+**Status:** Angenommen (umgesetzt in Schritt 4/5)
+
+**Kontext:**
+Das Assignment gibt für beide MLP-Varianten Startkonfigurationen vor und erlaubt
+ausdrücklich dokumentierte Eingriffe, wenn die Lernkurven Schwächen zeigen („Bewertet wird
+nicht, dass die Startvariante perfekt läuft, sondern dass Sie ihre Schwächen erkennen und
+begründet darauf reagieren“).
+
+**Entscheidung:**
+- **Variante A (Adam): keine Änderung.** Die Startkonfiguration ist geeignet.
+- **Variante B: Architektur unverändert**, aber Optimierung angepasst:
+  `SGD(momentum=0.9)` statt reinem SGD sowie Early-Stopping-`patience` 10 statt 5.
+  In die Vergleichstabelle geht die optimierte Variante B ein; die Startkonfiguration
+  bleibt im Notebook dokumentiert.
+
+**Begründung:**
+- Variante A zeigte saubere Lernkurven: kein vorzeitiger Abbruch (Early Stopping erst in
+  Epoche 63, bestes `val_loss` 0,231 in Epoche 58), klarer Lernfortschritt, nur mildes
+  Overfitting ohne ansteigenden `val_loss` – kein Handlungsbedarf.
+- Variante B (Start) konvergierte mit reinem SGD (konstante Lernrate 0,01, kein Momentum)
+  sichtbar langsamer und schlechter: bestes `val_loss` 0,273, F1w 0,877 – trotz größerer
+  Architektur schlechter als Variante A (0,886). Der Suspect-Recall brach auf 0,50 ein.
+- **Gegenprobe:** Nur `patience` auf 10 zu erhöhen (ohne Momentum) verbesserte fast nichts
+  (`val_loss` 0,264 nach 76 Epochen) – der Engpass war der Optimierer, nicht das
+  Abbruchkriterium.
+- Momentum 0,9 ist der Standard-Zusatz für SGD (Kurs, Kapitel 9) und bleibt bei der
+  Assignment-Vorgabe „SGD statt Adam“; die höhere Patience verhindert, dass die flache,
+  leicht verrauschte SGD-Kurve ein zufälliges 5-Epochen-Plateau als Konvergenz
+  fehlinterpretiert.
+
+**Konsequenzen:**
+Die optimierte Variante B erreicht `val_loss` 0,204 / Accuracy 0,912 / F1w 0,909 und
+übertrifft Variante A – bleibt aber hinter dem Random Forest (F1w 0,945), insbesondere beim
+Recall der Klasse Pathological (0,654 vs. 0,885). Der Random Forest bleibt Favorit für
+Schritt 6.
+
+---
+
+## ADR-013 – Klassen-Imbalance über `class_weight="balanced"` behandeln
+
+**Status:** Angenommen (umgesetzt in Schritt 6.2)
+
+**Kontext:**
+Die Klassen sind mit 78 / 14 / 8 % stark imbalanciert (→ ADR-002). Bis Schritt 5 wurden alle
+Modelle **ohne** Gegenmaßnahme trainiert, weil Schritt 3 ausdrücklich Default-Parameter
+verlangt. Die Folge war durchgängig ein schwacher Recall auf den kleinen Klassen
+(Pathological 0,65–0,88, Suspect 0,50–0,77).
+
+**Entscheidung:**
+Die Imbalance wird über **`class_weight="balanced"`** im finalen Random Forest behandelt –
+nicht über Resampling (SMOTE, Undersampling).
+
+**Begründung:**
+- **Datengetrieben statt gesetzt:** `class_weight` wurde als Parameter in den GridSearchCV
+  aufgenommen (None / balanced / balanced_subsample) und die Kreuzvalidierung hat entschieden.
+  Die Gewichtung hebt den CV-Recall auf Pathological von 0,838 auf 0,919, ohne den F1w
+  nennenswert zu beschädigen (0,9346 vs. 0,9356).
+- **Warum kein Resampling:** SMOTE erzeugt synthetische Fälle durch Interpolation zwischen
+  Nachbarn. Bei medizinischen Messdaten mit nur 175 pathologischen Fällen entstünden damit
+  CTG-Profile, die so nie gemessen wurden – fachlich schwer zu rechtfertigen. Undersampling
+  würde Daten der ohnehin knappen Gesamtmenge verwerfen. `class_weight` erreicht denselben
+  Effekt durch Umgewichtung im Loss, ohne die Datenbasis zu verfälschen.
+- Das Verfahren ist außerdem in scikit-learn eingebaut und benötigt keine externe
+  Bibliothek (`imbalanced-learn`).
+
+**Konsequenzen:**
+Bewusster Kompromiss zulasten der Mehrheitsklasse: Auf dem Validierungsset steigt der Recall
+für Suspect von 0,773 auf 0,864 und für Pathological von 0,885 auf 0,923, während Normal von
+0,984 auf 0,951 nachgibt. Im finalen Testergebnis wurden **alle 26 pathologischen Fälle
+erkannt** – erkauft mit 12 Fehlalarmen (Normal → Suspect). Im Screening-Kontext ist das der
+gewollte Tausch (→ ADR-002).
+
+---
+
+## ADR-015 – Finales Modell: Random Forest mit `class_weight="balanced"`
+
+**Status:** Angenommen (umgesetzt in Schritt 6.2–6.4)
+
+**Kontext:**
+Nach dem Vergleich aller fünf Modelle auf dem Validierungsset musste das beste Modell für die
+Hyperparameter-Optimierung und die finale Test-Evaluation bestimmt werden.
+
+**Entscheidung:**
+1. **Bestes Modell: Random Forest.** Er führt auf dem Validierungsset in allen drei Metriken
+   gleichzeitig (Accuracy 0,946 / F1w 0,945 / Recall Pathological 0,885) – deutlich vor den
+   neuronalen Netzen (F1w 0,886 bzw. 0,909).
+2. **Optimierung mit `GridSearchCV`** über vier Parameter (`n_estimators`, `max_depth`,
+   `min_samples_leaf`, `class_weight`) = 54 Kombinationen × 5 Folds. KerasTuner entfällt, da
+   das beste Modell kein neuronales Netz ist.
+3. **Gewählte Konfiguration – bewusst nicht der Grid-Sieger:**
+   `class_weight="balanced"`, `max_depth=None`, `min_samples_leaf=1`, `n_estimators=100`.
+4. **Finales Training auf Train + Validation** (1.796 Samples), dann **genau ein** Zugriff
+   auf das Testset.
+
+**Begründung:**
+- **Zur Abweichung vom Grid-Sieger:** Die Top-5-Konfigurationen liegen im F1 (weighted)
+  zwischen 0,9346 und 0,9356 – eine Spanne von 0,001, die weit innerhalb der CV-Streuung
+  von ± 0,016 (Schritt 3.2) liegt. Nach der Hauptmetrik sind sie statistisch nicht
+  unterscheidbar. Im Recall auf Pathological unterscheiden sie sich dagegen deutlich
+  (0,838–0,919). Damit greift die zweite Stufe unserer Metrikstrategie (→ ADR-002) und wählt
+  die Konfiguration mit CV-Recall 0,919. Die Auswahl beruht **ausschließlich auf
+  CV-Ergebnissen der Trainingsdaten** – Validierungs- und Testset waren nicht beteiligt.
+- **Zum Training auf Train + Validation:** Nach Abschluss aller Entscheidungen hat das
+  Validierungsset seine Aufgabe erfüllt. Bei nur 175 pathologischen Fällen insgesamt ist der
+  Zugewinn real: Das Endmodell sieht 149 statt 123 davon. Das Testset bleibt unberührt und
+  damit ein unverfälschter Schätzer.
+
+**Konsequenzen:**
+Finales Testergebnis: **Accuracy 0,927 / F1 (weighted) 0,928**, Recall Pathological
+**1,000** (26/26), Suspect 0,750, Normal 0,951. Die Zahlen liegen erwartungsgemäß leicht
+unter den Validierungswerten – ein Zeichen dafür, dass die Validierungsmetriken durch die
+wiederholte Modellauswahl leicht optimistisch waren. Da das Testset nur 26 pathologische
+Fälle enthält, ist der perfekte Recall mit Vorsicht zu lesen (95-%-Konfidenzintervall bis
+ca. 0,87 hinunter).
