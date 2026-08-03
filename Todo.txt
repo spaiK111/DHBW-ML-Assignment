@@ -8,3 +8,12 @@ Die Kommentare sind nicht so schlecht. Den Text versteht man gut und ist nachvol
 7.5 ist aber noch kritisch. Guckt das ihr das vielleicht wirklich nachvollziehen könnt. Das ist halt ein Knackpunkt, weil er ja davon ausgeht das wir das selber geschrieben haben.
 
 LaTeX wäre keine schlechte idee für die Abgabe der md datei
+
+Eventuell noch die Hexa Dezimahlcodes für die Farben anpassen, die sind etwas wierd. Alles andere KI haftige habe ich entfernt. Der text liest sich gut wie schon gesagt aber ich weiß nicht ob der zu sehr nach KI klingt. Aber gut, vielleicht könnt ihr das noch mit einem kühlereren Kopf morgen besser einschätzen. 
+
+
+Sachen die ich gemacht habe:
+- Claude Kommentare entfernt wo nicht notwendig ist
+- Kommentare im Code entfernt die Überflüssig sind.
+- Kommentare hinzugefügt die noch notwendig sind um zu verstehen
+- KI Sachen wie die bindestriche oder wierde Klammern entfernen.
