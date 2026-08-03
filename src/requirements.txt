@@ -1,25 +1,23 @@
-# Assignment Modellvergleich - Gruppe C (Gruppe 3)
+# Assignment Modellvergleich, Gruppe C (Gruppe 3)
 # Getestet mit Python 3.12
 #
 # Die Versionsangaben sind Mindestversionen ("kompatibel ab").
-# In Google Colab sind alle Pakete ausser keras-tuner vorinstalliert.
+# In Google Colab sind alle Pakete vorinstalliert, dort ist keine Installation nötig.
+#
+# Nicht enthalten: xgboost und keras-tuner. Beide werden im Notebook nicht verwendet,
+# weil das Baumverfahren der Random Forest ist (ADR-011) und die Optimierung des besten
+# Modells per GridSearchCV läuft (ADR-015).
 
-# --- Schritt 1-3: Datenanalyse, Preprocessing, klassische Modelle ---
+# --- Schritt 1 bis 3: Datenanalyse, Preprocessing, klassische Modelle ---
 pandas>=2.2
 numpy>=1.26
 matplotlib>=3.8
 seaborn>=0.13
 scikit-learn>=1.5
 
-# --- Schritt 3: optionales Baumverfahren (Kapitel 5) ---
-xgboost>=2.0
-
-# --- Schritt 4-5: neuronale Netze (Kapitel 9) ---
+# --- Schritt 4 und 5: neuronale Netze (Kapitel 9) ---
 tensorflow>=2.16
 
-# --- Schritt 6: Hyperparameter-Optimierung der neuronalen Netze ---
-keras-tuner>=1.4
-
-# --- Notebook-Umgebung (lokal; in Colab nicht noetig) ---
+# --- Notebook-Umgebung (lokal; in Colab nicht nötig) ---
 notebook>=7.0
 ipykernel>=6.29
