@@ -1,1 +1,10 @@
 1 - [OFFEN] Kennzeichen von Claude entfernen an vielen Stellen (zu 80% wegmachen)
+Maksim ich habe alles überprüft. Kapitel 7. Fazit sagt das wir das selber geschrieben haben lol. Nur damit du weißt. Zweitens ADRs werden die ganze Zeit erwähnt und sollten wahrscheinlich in die Management aufgenommen werden da dies wichtig ist. Abdul wollte das erst mit euch abklären
+
+Die Kommentare sind nicht so schlecht. Den Text versteht man gut und ist nachvollziehbar. Der code eigentlich auch.
+
+Überprüfe aber gerne nochmal die Kommentare die in dem Code sind. Mit strg + f kannst du nochmal danach suchen wo Claude im Text auftaucht. Claude taucht 7 mal auf. Eventuell könnte man falls man ehrlich sein möchte bei in oder 2 noch den Kommentar hinzufügen. 
+
+7.5 ist aber noch kritisch. Guckt das ihr das vielleicht wirklich nachvollziehen könnt. Das ist halt ein Knackpunkt, weil er ja davon ausgeht das wir das selber geschrieben haben.
+
+LaTeX wäre keine schlechte idee für die Abgabe der md datei
