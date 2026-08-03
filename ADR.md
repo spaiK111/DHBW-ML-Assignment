@@ -316,12 +316,69 @@ definiert und in allen weiteren Schritten wiederverwendet.
 
 ---
 
+## ADR-011 – Modellwahl Baumverfahren: Random Forest
+
+**Status:** Angenommen (umgesetzt in Schritt 3.1)
+
+**Kontext:**
+Das Assignment lässt für Modell 2 die Wahl zwischen Decision Tree, Random Forest und
+XGBClassifier („wähle ein geeignetes Modell“).
+
+**Entscheidung:**
+**Random Forest** (`RandomForestClassifier` mit Default-Parametern, `random_state=42`),
+trainiert auf den **unskalierten** Daten.
+
+**Begründung:**
+- Ein einzelner Entscheidungsbaum hat hohe Varianz und neigt ohne Beschneidung stark zum
+  Overfitting (Kurs, Kapitel 6). Da Schritt 3 ausdrücklich Default-Parameter verlangt, wäre
+  ein unregularisierter Einzelbaum die instabilste Wahl. Der Random Forest mittelt viele
+  dekorrelierte Bäume (Bagging + zufällige Feature-Auswahl) und generalisiert dadurch auch
+  ohne Tuning stabil.
+- Robust gegenüber der Multikollinearität aus Schritt 1.6 (→ ADR-005) und skaleninvariant.
+- Die nicht-monotonen Feature-Klassen-Zusammenhänge aus Schritt 1.7 kann ein Baumensemble
+  direkt abbilden.
+- Feature Importances liefern später einen Interpretationszugang.
+- XGBoost wäre ähnlich leistungsfähig, war im Kurs aber nur Praxisausblick und bringt eine
+  externe Abhängigkeit mit; der Random Forest ist Kernbestandteil von Kapitel 6.
+
+**Konsequenzen:**
+Der Random Forest erwies sich in Schritt 3 als bestes klassisches Modell (Validierung:
+Accuracy 0,946, F1w 0,945, Recall Pathological 0,885) und ist Favorit für die
+Hyperparameter-Optimierung in Schritt 6.
+
+---
+
+## ADR-012 – Modellwahl Distanz-/Kernelverfahren: SVM mit RBF-Kernel
+
+**Status:** Angenommen (umgesetzt in Schritt 3.1)
+
+**Kontext:**
+Das Assignment lässt für Modell 3 die Wahl zwischen k-Nächste-Nachbarn und Support Vector
+Machine.
+
+**Entscheidung:**
+**SVM mit RBF-Kernel** (`SVC()` mit Default-Parametern: C=1, `gamma="scale"`), in einer
+Pipeline mit `StandardScaler`.
+
+**Begründung:**
+- Bei 21 Dimensionen leidet k-NN unter dem Fluch der Dimensionalität – Abstände verlieren an
+  Aussagekraft (Kurs, Kapitel 7).
+- Bei stark imbalancierten Klassen benachteiligt das Mehrheitsvoting von k-NN die kleinen
+  Klassen systematisch: Die Nachbarschaft ist fast immer von „Normal“ dominiert. Die SVM
+  maximiert stattdessen den Rand zwischen den Klassen.
+- Der RBF-Kernel kann die nichtlinearen Strukturen aus Schritt 1.7 abbilden.
+- Laufzeit bei n = 1.479 unkritisch.
+
+**Konsequenzen:**
+Die SVM zeigt mit Defaults den schwächsten Suspect-Recall aller Modelle (0,568) –
+`class_weight="balanced"` ist als Optimierungshebel für Schritt 6 vorgemerkt (→ ADR-013).
+
+---
+
 ## Offene Entscheidungen (kommende Schritte)
 
 | Nr. | Thema | Schritt |
 |---|---|---|
-| ADR-011 | Modellwahl Kapitel 5: Decision Tree, Random Forest oder XGBClassifier | Schritt 3 |
-| ADR-012 | Modellwahl Kapitel 7/8: k-NN oder SVM | Schritt 3 |
-| ADR-013 | Umgang mit der Klassen-Imbalance im Modell (`class_weight` / Klassengewichte) | Schritt 3–5 |
+| ADR-013 | Umgang mit der Klassen-Imbalance im Modell (`class_weight` / Klassengewichte) | Schritt 6 |
 | ADR-014 | Eventuelle Anpassungen der MLP-Startarchitekturen A und B nach Analyse der Lernkurven | Schritt 4–5 |
 | ADR-015 | Auswahl des „besten“ Modells und Parameterraum der Hyperparameter-Optimierung | Schritt 6 |

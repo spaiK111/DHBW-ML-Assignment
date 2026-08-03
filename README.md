@@ -101,7 +101,7 @@ Markdown-Zelle mit Begründung bzw. Interpretation begleitet.
 |---|---|---|
 | **1** | Datenanalyse: Struktur, Datenqualität, Klassenverteilung, 4 Visualisierungen, Feature-Relevanz | ✅ fertig |
 | **2** | Preprocessing: Duplikate, Zielkodierung, stratifizierter 70/15/15-Split, Skalierung | ✅ fertig |
-| **3** | Drei klassische Modelle mit Default-Parametern + 5-fache stratifizierte Kreuzvalidierung | ⬜ offen |
+| **3** | Drei klassische Modelle mit Default-Parametern + 5-fache stratifizierte Kreuzvalidierung | ✅ fertig |
 | **4** | MLP Variante A: `Dense(64, relu) → Dense(3, softmax)`, Adam, Early Stopping | ⬜ offen |
 | **5** | MLP Variante B: zusätzlich `Dropout(0.3)` und `Dense(32, relu)`, SGD | ⬜ offen |
 | **6** | Vergleichstabelle, Hyperparameter-Optimierung, finale Evaluation auf dem Testset, Konfusionsmatrix | ⬜ offen |
@@ -136,6 +136,26 @@ Markdown-Zelle mit Begründung bzw. Interpretation begleitet.
 - **Skalierung:** `StandardScaler`, **nur auf Train gefittet**; skalierte Daten für LogReg,
   k-NN/SVM und MLPs, unskalierte für das Baumverfahren. Den Scaler auf dem Gesamtdatensatz zu
   fitten wäre Data Leakage – ausführliche Begründung in Notebook-Abschnitt 2.7 (→ ADR-008).
+
+### Ergebnisse aus Schritt 3 (Kurzfassung)
+
+- **Modellwahl:** Random Forest statt Decision Tree/XGBoost (→ ADR-011); SVM (RBF) statt
+  k-NN (→ ADR-012). Skalierungssensitive Modelle laufen in einer `Pipeline` mit
+  `StandardScaler`, damit die Skalierung je CV-Fold neu gefittet wird.
+- **5-fache stratifizierte CV (Trainingsdaten):**
+
+  | Modell | Accuracy | F1 (weighted) | Recall Pathological |
+  |---|---|---|---|
+  | Logistic Regression | 0,891 ± 0,017 | 0,890 ± 0,016 | 0,740 ± 0,058 |
+  | Random Forest | 0,937 ± 0,014 | 0,934 ± 0,016 | 0,862 ± 0,070 |
+  | SVM (RBF) | 0,900 ± 0,013 | 0,896 ± 0,014 | 0,708 ± 0,075 |
+
+- **Validierungsset:** Random Forest führt in allen Metriken (Accuracy 0,946 / F1w 0,945 /
+  Recall Pathological 0,885 = 23 von 26 erkannt) und geht als Favorit in den Vergleich mit
+  den MLPs. Die SVM hat den schwächsten Suspect-Recall (0,568) – `class_weight` ist als
+  Tuning-Hebel für Schritt 6 vorgemerkt (→ ADR-013).
+- **Alle Modelle** liegen deutlich über der 77,9-%-Baseline; *Suspect* ist durchgängig die
+  schwierigste Klasse (Recall 0,57–0,77).
 
 ---
 
