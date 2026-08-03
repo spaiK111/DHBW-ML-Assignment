@@ -1,2 +1,5 @@
 1 - Kennzeichen von Claude entfernen an vielen Stellen (zu 80% wegmachen)
 2 - Alle Texte umformulieren, menschlicher machen, Bindestriche entfernene.
+3 - Alle Notebooks mit dem Code vergleichen: Architektur soll gut sein, mit Unterricht überreinstimmen
+4 - Variablennamen ändern, Namenskonvention festlegen.
+5 - Alles nochmal prüfen und durchlesesen, ob es sinn macht.
