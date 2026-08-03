@@ -36,6 +36,7 @@ Fehlklassifikation ist, wird nicht nur die Accuracy bewertet, sondern vor allem 
 
 ```
 ML-Projekt/
+├── README.md                               ← diese Datei
 ├── ADR.md                                  ← alle Projektentscheidungen mit Begründung
 ├── Context/                                ← Aufgabenstellung & Kursmaterial (kein Code)
 │   ├── Assignment.pdf
@@ -43,9 +44,8 @@ ML-Projekt/
 │   ├── Script.pdf
 │   └── Notebook-LM-*/                      ← Übungsnotebooks aus der Vorlesung
 └── src/                                    ← gesamte Implementierung
-    ├── Readme.md                           ← diese Datei
     ├── requirements.txt                    ← Bibliotheksversionen
-    ├── fetal_health.csv                    ← Datensatz
+    ├── fetal_health.csv                    ← Datensatz (lokal; nicht im Repo, siehe .gitignore)
     └── fetal_health_modellvergleich.ipynb  ← Haupt-Notebook (alle 7 Schritte)
 ```
 
@@ -100,7 +100,7 @@ Markdown-Zelle mit Begründung bzw. Interpretation begleitet.
 | Schritt | Inhalt | Status |
 |---|---|---|
 | **1** | Datenanalyse: Struktur, Datenqualität, Klassenverteilung, 4 Visualisierungen, Feature-Relevanz | ✅ fertig |
-| **2** | Preprocessing: Duplikate, Zielkodierung, stratifizierter 70/15/15-Split, Skalierung | ⬜ offen |
+| **2** | Preprocessing: Duplikate, Zielkodierung, stratifizierter 70/15/15-Split, Skalierung | ✅ fertig |
 | **3** | Drei klassische Modelle mit Default-Parametern + 5-fache stratifizierte Kreuzvalidierung | ⬜ offen |
 | **4** | MLP Variante A: `Dense(64, relu) → Dense(3, softmax)`, Adam, Early Stopping | ⬜ offen |
 | **5** | MLP Variante B: zusätzlich `Dropout(0.3)` und `Dense(32, relu)`, SGD | ⬜ offen |
@@ -120,6 +120,22 @@ Markdown-Zelle mit Begründung bzw. Interpretation begleitet.
 - **Nicht-monotone Muster:** `histogram_mean` und `histogram_variance` verhalten sich bei
   *Suspect* gegenläufig zu *Pathological*. Das spricht dafür, dass nichtlineare Modelle hier
   Vorteile gegenüber der Logistischen Regression haben könnten.
+
+### Ergebnisse aus Schritt 2 (Kurzfassung)
+
+- **Fehlende Werte:** keine vorhanden → keine Imputation (→ ADR-003).
+- **Duplikate:** 13 entfernt, **vor** dem Split → 2.113 Zeilen; Klassenverteilung praktisch
+  unverändert (77,90 / 13,82 / 8,28 %) (→ ADR-004).
+- **Feature-Kodierung:** nicht nötig – keine Text-Features; `histogram_tendency` (−1/0/1) ist
+  ordinal und bleibt numerisch (→ ADR-006).
+- **Zielvariable:** per `LabelEncoder` kodiert, Mapping: Normal (1.0) → **0**,
+  Suspect (2.0) → **1**, Pathological (3.0) → **2**.
+- **Split (stratifiziert, 70/15/15):** Train 1.479 / Validation 317 / Test 317; Klassenanteile
+  in allen Teilmengen ≈ 77,9 / 13,8 / 8,2–8,3 %. Achtung: Validation und Test enthalten je nur
+  **26 Pathological-Fälle** → 1 Fall entspricht ≈ 3,8 Prozentpunkten Recall (→ ADR-009).
+- **Skalierung:** `StandardScaler`, **nur auf Train gefittet**; skalierte Daten für LogReg,
+  k-NN/SVM und MLPs, unskalierte für das Baumverfahren. Den Scaler auf dem Gesamtdatensatz zu
+  fitten wäre Data Leakage – ausführliche Begründung in Notebook-Abschnitt 2.7 (→ ADR-008).
 
 ---
 

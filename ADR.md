@@ -83,7 +83,7 @@ Rangfolge begründet.
 
 ## ADR-003 – Umgang mit fehlenden Werten
 
-**Status:** Angenommen (Schritt 1.2, Umsetzung Schritt 2)
+**Status:** Angenommen (umgesetzt in Schritt 2.1)
 
 **Kontext:**
 Schritt 2 des Assignments verlangt, fehlende Werte zu identifizieren, zu behandeln und die
@@ -106,7 +106,7 @@ Falls der Datensatz später ausgetauscht wird, muss diese Entscheidung neu getro
 
 ## ADR-004 – Behandlung der 13 Duplikat-Zeilen
 
-**Status:** Beschlossen (erkannt in Schritt 1.2, Umsetzung in Schritt 2)
+**Status:** Angenommen (erkannt in Schritt 1.2, umgesetzt in Schritt 2.2)
 
 **Kontext:**
 `df.duplicated().sum()` liefert **13 exakte Duplikat-Zeilen** (≈ 0,6 % der Daten).
@@ -130,8 +130,10 @@ identische abgeleitete Kennwerte haben könnten. Verworfen, weil das Leakage-Ris
 wiegt als der Verlust von 0,6 % der Daten.
 
 **Konsequenzen:**
-Ab Schritt 2 wird mit ca. 2.113 Zeilen gearbeitet. Die Zeilenzahl wird im Notebook vor und nach
-dem Entfernen ausgegeben, damit der Unterschied zu Schritt 1 nachvollziehbar bleibt.
+Ab Schritt 2 wird mit 2.113 Zeilen gearbeitet (bestätigt in Schritt 2.2; die
+Klassenverteilung ändert sich dadurch nur minimal: 77,90 / 13,82 / 8,28 %). Die Zeilenzahl
+wird im Notebook vor und nach dem Entfernen ausgegeben, damit der Unterschied zu Schritt 1
+nachvollziehbar bleibt.
 
 ---
 
@@ -170,7 +172,7 @@ machen?“) vorgemerkt.
 
 ## ADR-006 – Ordinal wirkende Features bleiben numerisch (keine Kodierung)
 
-**Status:** Angenommen (Schritt 1.5, Umsetzung Schritt 2)
+**Status:** Angenommen (umgesetzt in Schritt 2.3)
 
 **Kontext:**
 Schritt 2 verlangt, kategorische Features zu kodieren (One-Hot oder Label Encoding – mit
@@ -224,7 +226,7 @@ sich in Schritt 3 Auffälligkeiten zeigen.
 
 ## ADR-008 – Skalierung: StandardScaler, nur auf den Trainingsdaten gefittet
 
-**Status:** Beschlossen (Schritt 1.3, Umsetzung Schritt 2)
+**Status:** Angenommen (umgesetzt in Schritt 2.6)
 
 **Kontext:**
 Die Features liegen auf sehr unterschiedlichen Skalen: `accelerations` ≈ 0–0,02,
@@ -260,7 +262,7 @@ sie je Fold neu gefittet wird und kein Leakage über die Folds entsteht.
 
 ## ADR-009 – Stratifizierter 70/15/15-Split
 
-**Status:** Beschlossen (Schritt 1.4, Umsetzung Schritt 2)
+**Status:** Angenommen (umgesetzt in Schritt 2.5)
 
 **Kontext:**
 Das Assignment verlangt einen stratifizierten Train/Validation/Test-Split im Verhältnis
@@ -281,10 +283,11 @@ Zweistufiger Split mit `train_test_split(..., stratify=y, random_state=42)`:
   in Schritt 6 unangetastet („exakt einmal anfassen“).
 
 **Konsequenzen:**
-Bei ca. 2.113 Zeilen nach Duplikat-Entfernung ergeben sich ungefähr 1.479 / 317 / 317 Samples,
-davon jeweils ca. 26 Pathological in Validation und Test. Die kleine Absolutzahl bedeutet, dass
-der Recall dieser Klasse eine **hohe Varianz** hat – das ist bei der Interpretation in Schritt 6
-und 7 zu berücksichtigen.
+Bei 2.113 Zeilen nach Duplikat-Entfernung ergeben sich **1.479 / 317 / 317** Samples mit
+jeweils exakt **26 Pathological-Fällen** in Validation und Test (bestätigt in Schritt 2.5).
+Die kleine Absolutzahl bedeutet, dass der Recall dieser Klasse eine **hohe Varianz** hat –
+ein einziger Fall entspricht ≈ 3,8 Prozentpunkten Recall. Das ist bei der Interpretation in
+Schritt 6 und 7 zu berücksichtigen.
 
 ---
 
