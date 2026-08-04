@@ -1,271 +1,264 @@
 # Management Summary
 
-## Modellvergleich zur Einstufung des fetalen Zustands aus CTG-Daten
+## Systematischer Modellvergleich zur CTG-basierten Einstufung des fetalen Zustands
 
-Diese Zusammenfassung gehört zum Assignment „Systematischer Modellvergleich mit klassischen
-Modellen und neuronalen Netzen, Mehrklassen-Klassifikation“ aus dem Kurs Maschinelles Lernen mit
-Python, scikit-learn und Keras.
+| | |
+|---|---|
+| Projekt | Assignment „Systematischer Modellvergleich mit klassischen Modellen und neuronalen Netzen, Mehrklassen-Klassifikation“ |
+| Gruppe | C (Gruppe 3) |
+| Kurs | Maschinelles Lernen mit Python, scikit-learn und Keras · DHBW Stuttgart · SS 2026 |
+| Datensatz | Fetal Health Classification (Kaggle: `andrewmvd/fetal-health-classification`) |
+| Umfang | 2.126 Aufzeichnungen, 21 numerische Merkmale, 3 Zielklassen |
+| Ergebnis | Random Forest mit ausgeglichenen Klassengewichten, Testset: **Accuracy 92,7 %, F1 (weighted) 92,8 %** |
 
-Bearbeitet von: *[Namen der Gruppenmitglieder eintragen]*
+---
 
-## 1. Worum es geht
+## 1. Aufgabe und Zielsetzung
 
-Ein Kardiotokogramm zeichnet die Herzfrequenz des Fötus und die Wehentätigkeit der Mutter auf. Aus
-21 Kennzahlen, die aus so einer Aufzeichnung berechnet werden, soll ein Modell den Zustand des
-Fötus in drei Klassen einordnen: Normal, Suspect (also verdächtig) und Pathological (also
-pathologisch). Bei den Kennzahlen handelt es sich zum Beispiel um die Baseline-Herzfrequenz, um
-Akzelerationen und Dezelerationen, um verschiedene Maße für die Variabilität und um Statistiken
-über das Herzfrequenz-Histogramm. Die Klassen selbst haben Geburtsmediziner vergeben, die die
-Aufzeichnungen befundet haben.
+Aus Kardiotokogramm-Daten (CTG), also der Aufzeichnung fetaler Herzfrequenz und Wehentätigkeit,
+soll der Zustand eines Fötus automatisch in drei Klassen eingestuft werden: Normal, Suspect
+(verdächtig) und Pathological (pathologisch). Die 21 Merkmale sind aus dem CTG-Signal abgeleitete
+Kennzahlen wie Baseline-Herzfrequenz, Akzelerationen, Dezelerationen, Variabilitätsmaße und
+Histogramm-Statistiken; die Klassenlabels wurden von Geburtsmedizinern vergeben.
 
-Der Datensatz stammt von Kaggle und enthält 2.126 Aufzeichnungen. Nach dem Entfernen von 13
-exakten Duplikaten bleiben davon 2.113 übrig. Vorgegeben war, fünf Modelle zu vergleichen, drei
-klassische Verfahren und zwei Varianten eines neuronalen Netzes.
+Auftragsgemäß wurden fünf Modelle systematisch verglichen, drei klassische Verfahren und zwei
+Varianten eines neuronalen Netzes. Maßstab war nicht das maximale Ergebnis, sondern ein
+methodisch sauberes, nachvollziehbares und kritisch reflektiertes Vorgehen.
 
-Wichtig für das Verständnis aller folgenden Zahlen ist die Verteilung der Klassen. Etwa 77,9
-Prozent der Fälle sind normal, 13,8 Prozent verdächtig und 8,3 Prozent pathologisch. Ein Modell,
-das einfach immer „Normal“ vorhersagt, kommt damit schon auf 77,9 Prozent Genauigkeit, ohne einen
-einzigen kritischen Fall zu finden. Als Erfolgsmaß taugt die Accuracy hier also nicht. Deshalb
-haben wir bereits vor dem ersten Training festgelegt, woran wir die Modelle messen. An erster
-Stelle steht der gewichtete F1-Score, an zweiter der Recall der Klasse Pathological, und die
-Accuracy nehmen wir nur noch zur Einordnung dazu. Der teuerste Fehler ist ein übersehener
-pathologischer Fall, und genau das bildet diese Reihenfolge ab.
+**Der wirtschaftlich-fachliche Kern der Aufgabe:** Die Klassen sind stark unausgewogen mit
+77,9 %, 13,9 % und 8,3 %. Ein Modell, das ausnahmslos „Normal“ vorhersagt, erreicht damit bereits
+77,9 % Genauigkeit, ohne einen einzigen kritischen Fall zu erkennen. Die Gesamtgenauigkeit ist als
+Erfolgsmaß daher irreführend. Da die teuerste Fehlklassifikation ein übersehener pathologischer
+Fall ist, haben wir vorab eine Bewertungsrangfolge festgelegt: zuerst der F1-Score (weighted),
+dann der Recall der Klasse Pathological, und die Accuracy nur als Kontextgröße.
 
-## 2. Wie wir vorgegangen sind
+---
 
-Die sieben vorgegebenen Schritte haben wir der Reihe nach abgearbeitet. Vier Punkte waren uns
-dabei besonders wichtig.
+## 2. Vorgehen
 
-Der erste ist, dass keine Information aus den Testdaten ins Training durchsickert. Die Skalierung
-der Merkmale haben wir nur auf den Trainingsdaten angepasst, und innerhalb der Kreuzvalidierung
-steckt sie in einer Pipeline, damit sie für jeden Datenteil neu gelernt wird. Die 13 Duplikate
-haben wir vor dem Aufteilen entfernt, sonst hätte dieselbe Zeile gleichzeitig zum Trainieren und
-zum Bewerten gedient.
+Die Bearbeitung folgte den sieben vorgegebenen Schritten. Vier methodische Grundregeln haben wir
+durchgängig eingehalten, um belastbare Aussagen zu sichern.
 
-Der zweite ist die saubere Trennung der drei Datenrollen. Aufgeteilt haben wir stratifiziert, also
-unter Beibehaltung der Klassenverteilung: 70 Prozent der Daten gehen ins Training, die restlichen
-30 Prozent zu gleichen Teilen in Validierung und Test. In Fällen gerechnet sind das 1.479 für das
-Training und jeweils 317 für Validierung und Test. Der Modellvergleich und die Entscheidung,
-welches Modell wir weiterverfolgen, liefen über die Validierungsdaten. Die spätere Suche nach den
-besten Einstellungen lief per fünffacher Kreuzvalidierung nur innerhalb der Trainingsdaten, das
-Validierungsset war daran nicht beteiligt.
+1. **Kein Data Leakage.** Die Merkmalsskalierung wurde ausschließlich auf den Trainingsdaten
+   angepasst; innerhalb der Kreuzvalidierung erfolgte sie in einer Pipeline, sodass sie je
+   Datenteil neu gelernt wird. 13 exakte Duplikat-Zeilen wurden vor der Datenaufteilung entfernt,
+   damit identische Fälle nicht gleichzeitig zum Trainieren und zum Bewerten dienen.
+2. **Getrennte Datenrollen.** Stratifizierte Aufteilung 70 / 15 / 15 in Trainings-,
+   Validierungs- und Testdaten, also 1.479 / 317 / 317 Fälle. Sämtliche Modellvergleiche und die
+   Parameteroptimierung liefen über die Validierungsdaten.
+3. **Das Testset wurde genau einmal verwendet**, und zwar nach allen Entscheidungen. Damit ist das
+   berichtete Ergebnis eine unverfälschte Schätzung der Leistung auf neuen Daten.
+4. **Vollständige Entscheidungsdokumentation.** Alle 18 Projektentscheidungen sind mit Kontext,
+   Begründung, geprüften Alternativen und Konsequenzen in einem separaten Entscheidungsregister
+   (`ADR.md`) festgehalten.
 
-Der dritte Punkt ist, dass wir das Testset genau einmal angefasst haben, ganz am Ende und nach
-allen Entscheidungen. Damit ist das berichtete Ergebnis eine ehrliche Schätzung für neue Daten und
-kein Wert, auf den wir vorher hin optimiert haben.
+**Zur Datenlage:** keine fehlenden Werte, keine kategorischen Textmerkmale, der
+Vorverarbeitungsaufwand war entsprechend gering. Die Merkmalsanalyse identifizierte
+Variabilitätsmaße und das Fehlen von Akzelerationen als stärkste Risikoindikatoren, was klinisch
+etablierten Warnzeichen entspricht.
 
-Und viertens haben wir jede Entscheidung schriftlich begründet, insgesamt 18 Stück, jeweils mit
-den geprüften Alternativen und den Konsequenzen.
+---
 
-Die Daten selbst machten wenig Arbeit. Es fehlen keine Werte, es gibt keine Textspalten, alles ist
-numerisch. Bei der Merkmalsanalyse sind uns die Variabilitätsmaße und das Fehlen von
-Akzelerationen als stärkste Warnzeichen aufgefallen. Das passt zu dem, was in der Geburtsmedizin
-ohnehin als kritisch gilt, und wir haben das als gutes Zeichen für die Datenqualität gewertet.
+## 3. Ergebnisse des Modellvergleichs
 
-## 3. Der Vergleich der fünf Modelle
+Alle Modelle wurden zunächst mit Standardparametern trainiert und über eine 5-fache
+stratifizierte Kreuzvalidierung sowie auf den Validierungsdaten bewertet.
 
-Zuerst haben wir alle fünf Modelle mit den Standardeinstellungen trainiert, per fünffacher
-stratifizierter Kreuzvalidierung geprüft und danach auf den 317 Validierungsfällen bewertet. Das
-kam dabei heraus:
+| # | Modell | Typ | Accuracy | F1 (weighted) | Recall *Pathological* |
+|---|---|---|---|---|---|
+| 1 | Logistic Regression (multinomial) | Klassisch | 89,3 % | 0,890 | 0,654 |
+| 2 | **Random Forest** | **Klassisch** | **94,6 %** | **0,945** | **0,885** |
+| 3 | Support Vector Machine (RBF) | Klassisch | 90,2 % | 0,896 | 0,692 |
+| 4 | Neuronales Netz Variante A | Neuronal | 89,0 % | 0,886 | 0,654 |
+| 5 | Neuronales Netz Variante B (optimiert) | Neuronal | 91,2 % | 0,909 | 0,654 |
 
-- Die logistische Regression erreicht 89,3 Prozent Accuracy bei einem gewichteten F1-Score von
-  0,890 und erkennt 65,4 Prozent der pathologischen Fälle.
-- Der Random Forest kommt auf 94,6 Prozent Accuracy, einen F1-Score von 0,945 und einen Recall von
-  88,5 Prozent auf der Klasse Pathological.
-- Die Support Vector Machine mit RBF-Kernel liegt bei 90,2 Prozent Accuracy, einem F1-Score von
-  0,896 und einem Recall von 69,2 Prozent.
-- Variante A des neuronalen Netzes schafft 89,0 Prozent Accuracy, einen F1-Score von 0,886 und
-  einen Recall von 65,4 Prozent.
-- Variante B des neuronalen Netzes kommt nach der Optimierung auf 90,2 Prozent Accuracy, einen
-  F1-Score von 0,899 und einen Recall von 69,2 Prozent.
+*Werte auf den Validierungsdaten (317 Fälle). Naive Vergleichsbasis „immer Normal“: 77,9 %.*
 
-Zum Vergleich noch einmal der Referenzpunkt: Ein Modell, das immer Normal vorhersagt, erreicht
-77,9 Prozent Accuracy und einen Recall von null auf der kritischen Klasse.
+**Zentrale Befunde:**
 
-Der Random Forest führt in allen drei Metriken gleichzeitig, und am deutlichsten bei der Klasse,
-auf die es wirklich ankommt. Er erkennt 23 der 26 pathologischen Validierungsfälle, alle anderen
-Modelle nur 17 oder 18. Zusätzlich haben wir für ihn die ROC-AUC berechnet, weil dieses Maß
-unabhängig von der gewählten Entscheidungsschwelle ist. Sie liegt bei 0,988, berechnet nach dem
-One vs Rest Verfahren und nach Klassenhäufigkeit gewichtet. Der Vorsprung hängt also nicht an einer
-zufällig günstigen Schwelle.
+* **Der Random Forest ist eindeutig das beste Modell**, er führt in allen drei Metriken
+  gleichzeitig. Der Vorsprung ist bei der klinisch entscheidenden Klasse am größten: Er erkennt
+  23 von 26 pathologischen Fällen, alle übrigen Modelle nur 17 bis 18.
+* **Die neuronalen Netze setzen sich nicht durch.** Bei 1.479 Trainingsfällen und 21
+  vorverarbeiteten Merkmalen spielen sie ihre Stärke nicht aus, nämlich das Lernen von
+  Repräsentationen aus großen, unstrukturierten Datenmengen, während Baumverfahren auf genau
+  dieser tabellarischen Datenform besonders leistungsfähig sind.
+* **Die vorgegebene, tiefere Netzvariante B war zunächst schlechter als die einfachere Variante A**
+  (F1 0,877 gegenüber 0,886). Die Analyse der Lernkurven zeigte, dass nicht die Architektur die
+  Ursache war, sondern das Optimierungsverfahren: Das Training blieb in einem flachen Bereich
+  stehen, der vom Abbruchkriterium als Konvergenz gedeutet wurde. Eine dokumentierte Anpassung mit
+  Momentum-Term und verlängerter Geduld des Abbruchkriteriums hob das Ergebnis auf F1 0,909. Eine
+  Gegenprobe belegte, dass allein das Abbruchkriterium nicht ursächlich war.
+* **Bei den Modellwahlmöglichkeiten** haben wir uns methodisch begründet für den Random Forest
+  entschieden, also gegen Einzelbaum und XGBoost, und für die Support Vector Machine, also gegen
+  k-Nächste-Nachbarn. Beides wurde vorab aus der Datenanalyse abgeleitet und nicht durch
+  nachträgliche Auswahl des besten Ergebnisses.
 
-Dass die neuronalen Netze nicht gewinnen, hat uns am Anfang gewundert. Bei 1.479 Trainingsbeispielen
-und 21 fertig aufbereiteten Kennzahlen können sie ihre eigentliche Stärke aber gar nicht ausspielen,
-nämlich aus großen und unstrukturierten Datenmengen selbst brauchbare Repräsentationen zu lernen.
-Für tabellarische Daten in dieser Größenordnung sind Baumensembles einfach das passendere Werkzeug.
+---
 
-Am meisten gelernt haben wir bei Variante B, also der vorgegebenen tieferen Architektur. Sie war
-zunächst schlechter als die einfachere Variante A, mit einem F1-Score von 0,877 gegenüber 0,886. An
-der Architektur lag das aber nicht. Die Lernkurven zeigten, dass das Training in einem flachen
-Bereich hängen geblieben ist und das Abbruchkriterium diesen Stillstand für Konvergenz gehalten
-hat. Wir haben daraufhin dem Optimierer SGD ein Momentum von 0,9 mitgegeben und die Geduld des
-Abbruchkriteriums von fünf auf zehn Epochen erhöht. Danach stieg der F1-Score auf 0,899, und der
-Fehler auf den Validierungsdaten fiel von 0,273 auf 0,208. Um sicherzugehen, woran es lag, haben
-wir eine Gegenprobe gemacht: allein mit der längeren Geduld und ohne Momentum kommt das Netz nur
-auf 0,264. Entscheidend war also das Momentum.
+## 4. Optimierung und finale Bewertung
 
-Bei den beiden Modellen, die wir frei wählen durften, haben wir uns für den Random Forest
-entschieden und damit gegen einen einzelnen Entscheidungsbaum und gegen XGBoost, außerdem für die
-Support Vector Machine und damit gegen k-Nächste-Nachbarn. Beides haben wir vorher aus der
-Datenanalyse begründet und nicht im Nachhinein danach ausgesucht, was am besten abgeschnitten hat.
+Für das beste Modell wurde eine systematische Parametersuche über vier Parameter durchgeführt,
+also 54 Kombinationen mal 5 Datenteile, bei einer Rechenzeit von unter 10 Sekunden.
 
-## 4. Die Optimierung des Random Forest
+**Eine bewusste Abweichung vom formal besten Suchergebnis:** Die fünf besten Konfigurationen lagen
+im F1-Score nur 0,001 auseinander, ein Unterschied weit innerhalb der natürlichen Streuung von
+± 0,016 und damit statistisch bedeutungslos. Im Recall der kritischen Klasse unterschieden sie
+sich dagegen erheblich, nämlich zwischen 0,838 und 0,919. Gemäß unserer vorab festgelegten
+Bewertungsrangfolge haben wir daher die Konfiguration mit ausgeglichenen Klassengewichten gewählt:
+Wir tauschen einen methodisch irrelevanten Genauigkeitsunterschied gegen acht Prozentpunkte
+Erkennungsrate bei der Klasse, deren Übersehen den größten Schaden verursacht.
 
-Für den Random Forest haben wir eine Gittersuche über vier Einstellungen laufen lassen. Das sind 54
-Kombinationen, jede davon auf fünf Datenteilen, also 270 Trainingsläufe in gut 32 Sekunden.
-Gerechnet wurde per Kreuzvalidierung auf den Trainingsdaten. KerasTuner, das im Aufgabenblatt für
-neuronale Netze vorgesehen ist, haben wir nicht gebraucht, weil das beste Modell ein klassisches
-Verfahren ist.
+### Ergebnis auf den Testdaten (einmaliger, abschließender Zugriff)
 
-An einer Stelle sind wir bewusst vom formal besten Suchergebnis abgewichen. Die fünf besten
-Kombinationen unterscheiden sich im F1-Score nur um 0,001. Da die Kreuzvalidierung ohnehin um etwa
-0,016 schwankt, ist so ein Unterschied bedeutungslos. Im Recall der kritischen Klasse liegen sie
-dagegen weit auseinander, nämlich zwischen 0,838 und 0,919. Nach unserer vorher festgelegten
-Reihenfolge haben wir deshalb die Variante mit ausgeglichenen Klassengewichten genommen. Wir
-tauschen damit einen Genauigkeitsunterschied, der methodisch keine Rolle spielt, gegen acht
-Prozentpunkte Erkennungsrate bei der Klasse, deren Übersehen den größten Schaden anrichtet. Damit
-unsere Begründung später nicht von der tatsächlich verwendeten Einstellung abweichen kann, steht
-diese Auswahlregel im Notebook als ausführbarer Code und nicht als abgetippte Liste von Werten.
+**Accuracy 92,7 %, F1 (weighted) 92,8 %**
 
-Geprüft haben wir außerdem, ob es sich lohnt, die Alarmschwelle abzusenken. Wenn ein Fall schon ab
-einer Wahrscheinlichkeit von 0,25 statt der üblichen 0,50 als pathologisch gemeldet wird, steigt
-der Recall auf dieser Klasse von 0,885 auf 0,962. Dagegen entschieden haben wir uns trotzdem, und
-zwar aus drei Gründen. Der Gewinn entspricht zwei Fällen von 26 und liegt damit im Rauschen. Eine
-Schwelle, die an 26 Fällen kalibriert wurde, wäre mit ziemlicher Sicherheit nur an diese eine
-Stichprobe angepasst. Und die Klassengewichtung zieht bereits in dieselbe Richtung, wir würden den
-Effekt also doppelt anwenden.
+| Klasse | Precision | Recall | F1 | Fälle | 95-%-Konfidenzintervall (Recall) |
+|---|---|---|---|---|---|
+| Normal | 0,963 | 0,951 | 0,957 | 247 | [0,917; 0,972] |
+| **Suspect** | 0,733 | **0,750** | **0,742** | 44 | [0,606; 0,854] |
+| Pathological | 0,929 | **1,000** | 0,963 | 26 | **[0,871; 1,000]** |
 
-## 5. Das Ergebnis auf den Testdaten
+**Fehleranalyse über die Konfusionsmatrix:** Von 317 Testfällen wurden 23 falsch eingestuft.
 
-Beim einmaligen und abschließenden Blick auf das Testset kam eine Accuracy von 92,7 Prozent heraus,
-bei einem gewichteten F1-Score von 92,8 Prozent. Aufgeschlüsselt nach Klassen sieht es so aus:
+* **Kein pathologischer Fall wurde als „Normal“ eingestuft**, die schwerwiegendste Fehlerart trat
+  also nicht auf. Alle 26 pathologischen Fälle wurden erkannt.
+* **Häufigste Verwechslung ist Normal gegen Suspect** mit 12 plus 9, also 21 der 23 Fehler. Das
+  entspricht dem auch klinisch bestehenden Graubereich zwischen „noch normal“ und „schon
+  verdächtig“.
+* **Schwächste Klasse ist Suspect** mit einer Erkennungsrate von 75,0 %.
 
-- Bei Normal, immerhin 247 Fälle, liegt die Precision bei 0,963 und der Recall bei 0,951, der
-  F1-Score beträgt 0,957.
-- Bei Suspect, 44 Fälle, liegt die Precision bei 0,733 und der Recall bei 0,750, der F1-Score
-  beträgt 0,742.
-- Bei Pathological, 26 Fälle, liegt die Precision bei 0,929 und der Recall bei 1,000, der F1-Score
-  beträgt 0,963.
+**Wichtige Einordnung:** Wir haben die statistische Unsicherheit bewusst quantifiziert. Der Wert
+„alle 26 pathologischen Fälle erkannt“ ist bei dieser Stichprobengröße mit einer tatsächlichen
+Erkennungsrate von 90 % gut vereinbar. Von einer perfekten Erkennung darf also nicht gesprochen
+werden; es ist das am wenigsten belastbare Einzelergebnis des Projekts.
 
-Von den 317 Testfällen wurden 23 falsch eingeordnet. Kein einziger pathologischer Fall wurde dabei
-als normal eingestuft, die schlimmste Fehlerart ist also überhaupt nicht aufgetreten. 21 der 23
-Fehler entfallen auf die Verwechslung von Normal und Suspect, davon 12 in die eine und 9 in die
-andere Richtung. Diesen Graubereich zwischen „noch normal“ und „schon verdächtig“ gibt es auch
-klinisch. Am schlechtesten erkennt das Modell die Klasse Suspect, dort trifft es 33 von 44 Fällen.
+---
 
-Beim perfekten Recall auf Pathological muss man aber ehrlich bleiben. Wir haben dafür ein
-95-Prozent-Konfidenzintervall nach Wilson berechnet, und das reicht von 0,871 bis 1,000. Bei nur 26
-Fällen ist „26 von 26 erkannt“ also auch mit einer wahren Erkennungsrate von 90 Prozent gut
-vereinbar. Von einer perfekten Erkennung sollte deshalb niemand reden. Es ist die am wenigsten
-belastbare Zahl im ganzen Projekt, obwohl sie auf den ersten Blick die schönste ist.
+## 5. Empfehlung
 
-## 6. Unsere Empfehlung
+**Für den Produktiveinsatz empfehlen wir den Random Forest mit ausgeglichenen Klassengewichten,
+und zwar ausschließlich als Assistenzsystem mit ärztlicher Letztentscheidung, nicht als autonomes
+Diagnosewerkzeug.**
 
-Wir empfehlen den Random Forest mit ausgeglichenen Klassengewichten, und zwar ausschließlich als
-Assistenzsystem, bei dem am Ende ein Arzt entscheidet. Als eigenständiges Diagnosewerkzeug ist er
-nicht geeignet.
+Die tragenden Gründe:
 
-Dafür sprechen vier Gründe. Erstens wurde kein pathologischer Fall als unauffällig durchgewinkt,
-und das ist der einzige Fehlertyp, der wirklich gefährlich werden kann. Zweitens lag das Modell in
-jeder einzelnen Auswertung vorn, in der Kreuzvalidierung, auf den Validierungsdaten und auf dem
-Testset. Unsere Empfehlung hängt also nicht an einem einzelnen Zahlenvorsprung. Drittens sind die
-übrig gebliebenen Fehler überwiegend die vorsichtige Sorte. Sie erzeugen zusätzlichen Prüfaufwand,
-aber keinen medizinischen Schaden. Und viertens ist der Betrieb unkompliziert. Es braucht keine
-spezielle Hardware und keinen Skalierungsschritt, das ist eine Fehlerquelle weniger. Über die
-Merkmalswichtigkeiten kann man außerdem zumindest teilweise nachvollziehen, worauf eine Einstufung
-beruht. Gerade in der Medizin ist das ein echtes Argument, weil erklärbar sein muss, warum ein
-Alarm ausgelöst wird.
+1. **Stärke bei der entscheidenden Klasse.** Kein pathologischer Fall wurde als unauffällig
+   durchgewinkt, und das ist der einzige Fehlertyp mit potenziell gravierenden Folgen.
+2. **Durchgängige Überlegenheit.** Das Modell lag in jeder Auswertung vorn, also in
+   Kreuzvalidierung, Validierung und Test. Die Empfehlung stützt sich auf Konsistenz und nicht auf
+   einen einzelnen Zahlenvorsprung.
+3. **Günstiges Fehlerprofil.** Die verbleibenden Fehler sind überwiegend *vorsichtige* Fehler, sie
+   erzeugen zusätzlichen Prüfaufwand und keinen medizinischen Schaden.
+4. **Betriebliche Vorteile.** Training in unter einer Sekunde, keine spezielle Hardware, kein
+   Skalierungsschritt und damit eine Fehlerquelle weniger im Betrieb. Über Merkmalswichtigkeiten
+   ist das Modell teilweise erklärbar, was in der Medizin ein reales Akzeptanzargument ist, denn
+   es muss nachvollziehbar sein, worauf ein Alarm beruht.
 
-Von den neuronalen Netzen raten wir ab. Auf dieser Art von Daten bringen sie keinen Vorteil bei der
-Leistung, kosten aber deutlich mehr Trainingsaufwand, sind schlechter erklärbar und ziehen eine
-schwergewichtige technische Abhängigkeit in den Betrieb. Wirtschaftlich ist das ein schlechtes
-Tauschgeschäft.
+**Bewusst nicht empfohlen:** Die neuronalen Netze bringen bei dieser Datenform keinen
+Leistungsvorteil, erfordern aber deutlich mehr Trainingsaufwand, sind schlechter erklärbar und
+ziehen eine schwergewichtige technische Abhängigkeit in den Betrieb. Aus Wirtschaftlichkeitssicht
+ist das ein schlechtes Tauschgeschäft.
 
-## 7. Grenzen und Risiken
+---
 
-Die Klasse Suspect erkennt das Modell nur zu 75,0 Prozent, und von den als verdächtig gemeldeten
-Fällen stimmen 73,3 Prozent. Ausgerechnet an dieser Klasse hängt aber die praktisch wichtigste
-Frage, nämlich ob weiter beobachtet wird oder nicht. Neun von 44 verdächtigen Fällen würden aus der
-Nachbeobachtung herausfallen. Das ist aus unserer Sicht die wichtigste offene Baustelle.
+## 6. Grenzen und Risiken
 
-Grundsätzlich ist ein zweiter Punkt. Das Modell lernt Befundungsverhalten und nicht den Zustand
-des Fötus. Die Zielwerte sind ärztliche Einschätzungen des CTG und nicht der tatsächliche Ausgang
-der Geburt. Im besten Fall reproduziert das Modell also die Urteilsqualität derjenigen, die
-befundet haben, samt deren systematischer Fehler. Um etwas über den klinischen Nutzen sagen zu
-können, bräuchte man Ergebnisdaten wie den Apgar-Score oder den Nabelschnur-pH, und die liegen
-schlicht nicht vor.
+Diese Einschränkungen sind für eine Einsatzentscheidung wesentlich:
 
-Dazu kommen noch drei Einschränkungen:
+* **Die Klasse Suspect ist unzuverlässig** mit einer Erkennung von 75,0 % und einer
+  Treffergenauigkeit von 73,3 %, und ausgerechnet sie ist am ehesten handlungsleitend, denn es
+  geht um die Frage „beobachten oder nicht?“. Neun von 44 verdächtigen Fällen würden aus der
+  Nachbeobachtung fallen. Dies ist die wichtigste offene Baustelle.
+* **Das Modell lernt Befundungsverhalten, nicht den fetalen Zustand.** Die Zielwerte sind
+  ärztliche Einschätzungen des CTG und nicht der tatsächliche Geburtsausgang. Das Modell
+  reproduziert damit bestenfalls die Urteilsqualität der Befundenden einschließlich deren
+  systematischer Fehler. Für eine Aussage über den klinischen Nutzen wären Ergebnisdaten
+  erforderlich, etwa Apgar-Score oder Nabelschnur-pH, die nicht vorliegen.
+* **Die Datenbasis ist für ein Qualitätsversprechen zu klein.** 26 pathologische Testfälle
+  erlauben keine belastbare Leistungsgarantie.
+* **Keine geprüfte Übertragbarkeit.** Alle Daten stammen aus einer Quelle mit einheitlicher
+  Befundungspraxis. Ob das Modell auf anderen Geräten, in anderen Kliniken oder bei anderen
+  Patientinnenpopulationen vergleichbar funktioniert, ist ungeprüft, und das ist erfahrungsgemäß
+  die häufigste Bruchstelle medizinischer KI-Systeme.
+* **Regulatorik und Anwendungsrisiko.** Ein solches System wäre ein Medizinprodukt mit
+  entsprechenden Zulassungspflichten. Zudem besteht die Gefahr, dass ein unauffälliges
+  Modellergebnis die eigene kritische Prüfung ersetzt. Beides bestärkt die Positionierung als
+  reine Zweitmeinung.
 
-- Die Datenbasis ist zu klein für ein Qualitätsversprechen. Auf 26 pathologischen Testfällen kann
-  man keine Leistungsgarantie aufbauen.
-- Ob das Modell übertragbar ist, wissen wir nicht. Alle Daten stammen aus einer Quelle mit
-  einheitlicher Befundungspraxis. Wie es auf anderen Geräten, in anderen Kliniken oder bei anderen
-  Patientinnengruppen aussieht, haben wir nie geprüft. Erfahrungsgemäß ist genau das die häufigste
-  Stelle, an der medizinische KI-Systeme scheitern.
-- So ein System wäre ein Medizinprodukt und damit zulassungspflichtig. Außerdem besteht die Gefahr,
-  dass ein unauffälliges Modellergebnis die eigene kritische Prüfung ersetzt. Beides spricht dafür,
-  es wirklich nur als Zweitmeinung einzusetzen.
+---
 
-## 8. Was als Nächstes sinnvoll wäre
+## 7. Empfohlene nächste Schritte
 
-Der Engpass sind die Daten und die fachliche Validierung, nicht die Technik. Die komplette
-Optimierung hat gut eine halbe Minute gerechnet, mehr Rechenleistung würde am Ergebnis nichts
-ändern. Sinnvoll wäre aus unserer Sicht Folgendes, ungefähr in dieser Reihenfolge:
+**Der Engpass ist die Datenlage und die fachliche Validierung, nicht die Technik.** Der gesamte
+Optimierungsdurchlauf benötigte weniger als zehn Sekunden Rechenzeit, zusätzliche Hardware würde
+das Ergebnis nicht verbessern. Konkret:
 
-1. Mehr Daten sammeln, vor allem pathologische Fälle. Damit die Aussage auf etwa fünf Prozentpunkte
-   genau wird, bräuchte man rund 73 pathologische Testfälle. Hochgerechnet sind das etwa 5.900
-   Aufzeichnungen statt der heutigen 2.113.
-2. Daten aus mehreren Kliniken einbeziehen, weil man die Übertragbarkeit sonst gar nicht prüfen
-   kann.
-3. Gegen echte Geburtsausgänge validieren statt gegen Befunde. Damit verschiebt sich der Maßstab
-   von „stimmt mit der ärztlichen Einschätzung überein“ auf den tatsächlichen klinischen Nutzen.
-4. Gezielt an der Klasse Suspect arbeiten, zum Beispiel mit einer zweistufigen Klassifikation.
-5. Die Frage nach der Alarmschwelle neu bewerten, sobald mehr pathologische Fälle vorliegen. Die
-   Analyse dazu haben wir in Abschnitt 4 bereits gemacht, nur trägt die heutige Datenmenge die
-   Entscheidung noch nicht.
-6. Methodisch nachschärfen, etwa mit wiederholter oder geschachtelter Kreuzvalidierung, mit einer
-   Kalibrierung der Wahrscheinlichkeiten und mit XGBoost als weiterem Vergleichspunkt.
+| Priorität | Maßnahme | Erwarteter Nutzen |
+|---|---|---|
+| **1** | **Datenbasis ausweiten**, insbesondere pathologische Fälle | Für eine Aussagegenauigkeit von ± 5 Prozentpunkten wären ca. 73 pathologische Testfälle nötig, das entspricht rund 5.900 Aufzeichnungen gesamt (heute: 26 bzw. 2.113) |
+| **2** | **Daten aus mehreren Kliniken** einbeziehen | Erst damit ist Übertragbarkeit überhaupt prüfbar |
+| **3** | **Validierung an echten Geburtsausgängen** | Verlagert den Maßstab von „stimmt mit dem Befund überein“ auf tatsächlichen klinischen Nutzen |
+| **4** | **Gezielte Arbeit an der Klasse Suspect**, z. B. zweistufige Klassifikation | Behebt die wesentliche Modellschwäche |
+| **5** | **Entscheidungsschwellen nach Fehlerkosten** festlegen statt nur Klassengewichtung | Erlaubt fachlich begründete Steuerung des Kompromisses zwischen Fehlalarmen und übersehenen Fällen |
+| **6** | **Wiederholte bzw. geschachtelte Kreuzvalidierung**, Modellkalibrierung, XGBoost als Alternative | Methodische Absicherung, moderater Zusatznutzen |
 
+**Zur häufig gestellten Frage nach Deep Learning:** Auf den vorliegenden Daten würden ein CNN oder
+Transfer Learning nicht helfen, denn die 21 Merkmale sind eine ungeordnete Menge aggregierter
+Kennzahlen ohne die räumliche oder zeitliche Nachbarschaftsstruktur, die solche Verfahren
+ausnutzen. Auf dem rohen CTG-Zeitsignal wäre ein 1D-CNN dagegen aussichtsreich: Es könnte Muster
+erfassen, die in keiner der Kennzahlen enthalten sind, etwa die zeitliche Kopplung zwischen einer
+Wehe und der darauf folgenden Herzfrequenzabsenkung, klinisch ein zentrales
+Unterscheidungsmerkmal. Diese Information ist im aggregierten Datensatz unwiederbringlich
+verloren.
 
+---
 
-## 9. Fazit
+## 8. Fazit
 
-Am meisten gelernt haben wir nicht beim Trainieren, sondern beim genauen Hinsehen, was die Modelle
-eigentlich falsch machen. Die 92,7 Prozent Accuracy sind ein ordentliches Ergebnis, für sich
-genommen sagen sie aber wenig. Erst die Konfusionsmatrix hat gezeigt, dass die Klasse Suspect das
-eigentliche Problem ist, und erst das Konfidenzintervall hat klargemacht, dass unsere schönste Zahl
-gleichzeitig unsere unsicherste ist.
+Fünf Modelle wurden nach einem einheitlichen, leakage-freien Protokoll verglichen. Ein Random
+Forest mit ausgeglichenen Klassengewichten erreicht auf ungesehenen Testdaten 92,7 % Genauigkeit
+bei einem F1-Score (weighted) von 92,8 % und erkennt alle pathologischen Fälle der Stichprobe. Er
+übertrifft beide neuronalen Netze deutlich.
 
-Der Random Forest hat beide neuronalen Netze klar geschlagen. Das war für uns die zweite
-Überraschung, weil man bei einer medizinischen Fragestellung zuerst an neuronale Netze denkt. Hier
-hätten sie vor allem Aufwand gekostet.
+Der wesentliche Erkenntnisgewinn des Projekts lag jedoch nicht in der besten Kennzahl, sondern in
+der genauen Fehleranalyse. Die Konfusionsmatrix offenbarte die Schwäche bei der Klasse *Suspect*,
+die die Gesamtgenauigkeit verdeckte. Die Lernkurven zeigten, dass die schwächere Netzvariante am
+Optimierungsverfahren scheiterte und nicht an ihrer Architektur. Und die Konfidenzintervalle
+machten deutlich, dass das eindrucksvollste Einzelergebnis, nämlich die vollständige Erkennung
+aller pathologischen Fälle, die am wenigsten belastbare Zahl des gesamten Projekts ist.
 
-Bleibt die Einordnung für einen echten Einsatz. Ein größeres oder komplizierteres Modell hätte an
-unseren Ergebnissen wenig geändert. Was fehlt, sind mehr Daten und vor allem Zielwerte, die den
-tatsächlichen Ausgang einer Geburt abbilden und nicht das Urteil eines Arztes über ein CTG. Solange
-das so bleibt, ist dieses Modell ein Kandidat für eine Assistenzfunktion und kein fertiges
-Diagnosewerkzeug.
+Für einen realen Einsatz ist dieses Modell ein Kandidat für eine Assistenzfunktion mit ärztlicher
+Letztentscheidung, kein fertiges Diagnosewerkzeug. Der Weg dorthin führt über mehr und breitere
+Daten sowie über eine Validierung an tatsächlichen Geburtsausgängen, nicht über ein größeres
+Modell.
 
-## Die wichtigsten Zahlen
+---
 
-- Der Datensatz enthält 2.126 Aufzeichnungen, nach dem Entfernen von 13 Duplikaten noch 2.113.
-- Es gibt 21 Merkmale, alle numerisch und ohne fehlende Werte.
-- Die Klassen verteilen sich auf 77,9 Prozent Normal, 13,8 Prozent Suspect und 8,3 Prozent
-  Pathological.
-- Aufgeteilt wurde stratifiziert in 1.479 Trainingsfälle sowie je 317 Validierungs- und Testfälle.
-- Verglichen wurden fünf Modelle, drei klassische und zwei neuronale Netze.
-- Die naive Vergleichsbasis liegt bei 77,9 Prozent Accuracy und einem Recall von null auf
-  Pathological.
-- Das finale Modell ist ein Random Forest mit ausgeglichenen Klassengewichten.
-- Auf dem Testset erreicht es 92,7 Prozent Accuracy und einen gewichteten F1-Score von 92,8
-  Prozent.
-- Von 26 pathologischen Testfällen erkennt es alle 26, das Konfidenzintervall reicht von 0,871 bis
-  1,000.
-- Von 44 verdächtigen Fällen erkennt es 33, also 75,0 Prozent.
-- Die wichtigsten Merkmale sind der Anteil auffälliger Kurzzeit-Variabilität mit 14,1 Prozent und
-  der Anteil auffälliger Langzeit-Variabilität mit 12,3 Prozent.
-- Die Gittersuche umfasste 54 Kombinationen und 270 Trainingsläufe und brauchte 32,2 Sekunden
+### Anhang: Kennzahlen im Überblick
 
+| Kenngröße | Wert |
+|---|---|
+| Aufzeichnungen (nach Duplikatentfernung) | 2.113 |
+| Merkmale | 21 (alle numerisch), keine fehlenden Werte |
+| Klassenverteilung | Normal 77,9 %, Suspect 13,8 %, Pathological 8,3 % |
+| Datenaufteilung | 1.479 / 317 / 317 (stratifiziert 70 / 15 / 15) |
+| Verglichene Modelle | 5 (3 klassische, 2 neuronale Netze) |
+| Naive Vergleichsbasis | 77,9 % Genauigkeit |
+| **Finales Modell** | **Random Forest, ausgeglichene Klassengewichte** |
+| **Testergebnis** | **Accuracy 92,7 %, F1 (weighted) 92,8 %** |
+| Erkennungsrate Pathological | 26 von 26, Konfidenzintervall [0,871; 1,000] |
+| Erkennungsrate Suspect | 33 von 44 (75,0 %) |
+| Wichtigste Merkmale | Kurzzeit-Variabilität (14,1 %), Anteil abnormer Langzeit-Variabilität (12,3 %) |
+| Trainingsdauer finales Modell | unter 1 Sekunde (keine GPU erforderlich) |
+| Dokumentierte Entscheidungen | 18 (vollständig in `ADR.md`) |
 
+---
 
+*Zugehörige Dokumente: `src/fetal_health_modellvergleich.ipynb` (vollständig ausgeführtes Notebook
+mit allen sieben Bearbeitungsschritten), `ADR.md` (Entscheidungsregister) und `README.md`
+(Projektdokumentation und Einrichtung).*
+
+*Hinweis zur KI-Nutzung: KI-Werkzeuge wurden entsprechend den Vorgaben des Assignments für Code,
+Debugging und als Diskussionspartner eingesetzt; alle KI-generierten Codeblöcke sind im Notebook
+gekennzeichnet. Bewertung, Empfehlung und Reflexion verantwortet die Gruppe.*

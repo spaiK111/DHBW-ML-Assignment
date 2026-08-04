@@ -50,10 +50,8 @@ und Entscheidungen zentral zu dokumentieren.
 
 * Die gesamte Bearbeitung erfolgt in *einem* Jupyter- oder Colab-Notebook,
   `src/fetal_health_modellvergleich.ipynb`, gegliedert nach den sieben Schritten des Assignments.
-* Der Datensatz wird **zweistufig** geladen: Liegt `fetal_health.csv` neben dem Notebook, wird
-  diese lokale Kopie verwendet; andernfalls lädt `kagglehub` den Datensatz direkt aus der im
-  Assignment genannten Quelle `andrewmvd/fetal-health-classification`. Die lokale Datei hat
-  dabei immer Vorrang.
+* Der Datensatz liegt als lokale Kopie unter `src/fetal_health.csv` und wird mit einem relativen
+  Pfad geladen (`pd.read_csv("fetal_health.csv")`).
 * Verwendet wird ausschließlich der aus dem Unterricht bekannte Stack: `pandas`, `numpy`,
   `matplotlib`, `seaborn`, `scikit-learn` und ab Schritt 4 TensorFlow/Keras.
 * Ein globales `RANDOM_STATE = 42` wird an alle Funktionen mit Zufallsanteil übergeben, also an
@@ -63,23 +61,16 @@ und Entscheidungen zentral zu dokumentieren.
 
 **Begründung:**
 Ein einzelnes Notebook entspricht dem geforderten Abgabeformat und hält Code, Ergebnis und
-Begründung in den Markdown-Zellen an derselben Stelle, so wie im Kurs praktiziert. Ein fester
-Seed macht alle berichteten Zahlen reproduzierbar, was Voraussetzung dafür ist, dass der
+Begründung in den Markdown-Zellen an derselben Stelle, so wie im Kurs praktiziert. Der relative
+Pfad statt eines `kagglehub`-Downloads fixiert den Datensatz eindeutig auf die lokale CSV; ein
+späterer Wechsel der Quelldaten auf Kaggle kann die Ergebnisse damit nicht verändern. Und ein
+fester Seed macht alle berichteten Zahlen reproduzierbar, was Voraussetzung dafür ist, dass der
 Modellvergleich in Schritt 6 überhaupt aussagekräftig ist.
 
-Zum **Vorrang der lokalen Datei**: Beide Ziele lassen sich so gleichzeitig erreichen. Die
-lokale CSV fixiert den Datensatz eindeutig – ein späterer Wechsel der Quelldaten auf Kaggle
-kann die Ergebnisse nicht unbemerkt verändern. Gleichzeitig macht der `kagglehub`-Fallback das
-Notebook in Google Colab ohne manuellen Upload lauffähig, was die Abgabe- und
-Nachvollziehbarkeitsanforderung des Assignments erfüllt. Wäre die Reihenfolge umgekehrt, ginge
-die Reproduzierbarkeit verloren.
-
 **Konsequenzen:**
-Das Notebook läuft in Colab ohne Vorbereitung: öffnen und ausführen. `kagglehub` ist in Colab
-vorinstalliert; lokal ist es nur nötig, wenn keine CSV vorliegt (`pip install kagglehub`).
-Beide Ladewege wurden geprüft und liefern **byte-identische Daten** (2.126 × 22, `df.equals()`
-= True). Ergebnisse sind bei gleicher Bibliotheksversion exakt reproduzierbar; bei abweichenden
-Versionen können minimale numerische Unterschiede auftreten.
+Zum Ausführen in Colab muss `fetal_health.csv` neben das Notebook hochgeladen werden, siehe
+`README.md`. Ergebnisse sind bei gleicher Bibliotheksversion exakt reproduzierbar; bei
+abweichenden Versionen können minimale numerische Unterschiede auftreten.
 
 ---
 
