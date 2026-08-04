@@ -60,14 +60,21 @@ Der Ordner `Context/` dient ausschließlich als Kontext und enthält keinen Proj
 ### Variante A: Google Colab (empfohlen für die Abgabe)
 
 1. `fetal_health_modellvergleich.ipynb` in Colab öffnen (*Datei → Notebook hochladen*).
-2. `fetal_health.csv` in die Colab-Sitzung hochladen (linke Seitenleiste, Ordnersymbol,
-   *Hochladen*). Das Notebook lädt die Datei über einen relativen Pfad, sie muss also neben dem
-   Notebook liegen.
-3. Ab Schritt 4 (Keras): *Laufzeit → Laufzeittyp ändern → T4 GPU*.
-4. *Laufzeit → Alle ausführen*.
+2. Ab Schritt 4 (Keras): *Laufzeit → Laufzeittyp ändern → T4 GPU*.
+3. *Laufzeit → Alle ausführen*.
 
-Alle im Notebook verwendeten Bibliotheken sind in Colab vorinstalliert, eine Nachinstallation ist
-nicht nötig.
+**Ein manueller Upload des Datensatzes ist nicht nötig.** Das Notebook lädt die Daten
+zweistufig (→ ADR-001):
+
+1. Liegt `fetal_health.csv` neben dem Notebook, wird diese lokale Kopie verwendet.
+2. Andernfalls wird der Datensatz über `kagglehub` direkt von Kaggle geladen
+   (`andrewmvd/fetal-health-classification`, die im Assignment genannte Quelle).
+
+Beide Wege wurden geprüft und liefern identische Daten (2.126 × 22). Alle im Notebook
+verwendeten Bibliotheken inklusive `kagglehub` sind in Colab vorinstalliert, eine
+Nachinstallation ist nicht nötig. Wer lieber mit der lokalen Kopie arbeitet, lädt
+`fetal_health.csv` über die linke Seitenleiste (Ordnersymbol, *Hochladen*) hoch – sie hat
+dann Vorrang.
 
 ### Variante B: Lokal
 
@@ -84,8 +91,9 @@ pip install -r requirements.txt
 jupyter notebook fetal_health_modellvergleich.ipynb
 ```
 
-Getestet mit Python 3.12. Das Notebook muss aus dem Ordner `src/` heraus gestartet werden, damit
-der relative Pfad zu `fetal_health.csv` aufgeht.
+Getestet mit Python 3.12. Das Notebook sollte aus dem Ordner `src/` heraus gestartet werden,
+damit der relative Pfad zu `fetal_health.csv` aufgeht. Wird es aus einem anderen Verzeichnis
+gestartet, greift automatisch der Kaggle-Fallback (`kagglehub` erforderlich).
 
 ---
 

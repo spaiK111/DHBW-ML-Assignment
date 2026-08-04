@@ -18,6 +18,11 @@ scikit-learn>=1.5
 # --- Schritt 4 und 5: neuronale Netze (Kapitel 9) ---
 tensorflow>=2.16
 
+# --- Datenbezug: nur noetig, wenn fetal_health.csv NICHT lokal vorliegt ---
+# Das Notebook nutzt vorrangig die lokale CSV und faellt nur andernfalls
+# auf den Kaggle-Download zurueck (siehe ADR-001).
+kagglehub>=0.3
+
 # --- Notebook-Umgebung (lokal; in Colab nicht nötig) ---
 notebook>=7.0
 ipykernel>=6.29
